@@ -2,6 +2,8 @@
 
 
 #include "SnakePawn.h"
+#include "SnakeTailSegment.h"
+#include "SnakeFood.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
@@ -22,7 +24,15 @@ ASnakePawn::ASnakePawn()
 void ASnakePawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+    
+	// Initialize our last tile position.
+	LastTilePosition = GetActorLocation();
+
+	// Bind the OnOverlapBegin event on the collision component.
+	if (CollisionComponent)
+	{
+		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASnakePawn::OnOverlapBegin);
+	}
 }
 
 // Called every frame
@@ -72,36 +82,39 @@ void ASnakePawn::MoveSnake(float Distance)
 
 void ASnakePawn::UpdateMovement(float DeltaTime)
 {
-	// What the total distance the snake should move this frame is
 	float TotalMoveDistance = Speed * DeltaTime;
-
-	// Distance that the snake have left to move this frame
 	float MoveDistance = TotalMoveDistance;
 
-	// While the distance left to move is more than what is left to move in the tile
-	// The enter and move the distance that is left to move and then update direction.
 	while (MovedTileDistance + MoveDistance >= TileSize)
 	{
-		// Update the move distance so that it is the same as what is left to move in the tile
+		// Calculate the distance needed to finish the current tile.
 		MoveDistance = TileSize - MovedTileDistance;
 
-		// Move the snake that distance
-		MoveSnake(MoveDistance);
+		// Store the head’s tile position before it updates.
+		FVector PreviousTilePos = LastTilePosition;
 
-		// Update snake direction
+		// In UpdateMovement(), when a full tile has been traversed:
+		FVector PreviousHeadPos = LastTilePosition;  // Save the last tile position before moving.
+		MoveSnake(MoveDistance);
+		UpdateTailTargets(PreviousHeadPos);  // Update all tail target positions.
+		LastTilePosition = GetActorLocation(); // Update the head's last tile position.
+
+		// Update tail segments so that the first segment moves
+		// to the previous tile position.
+		UpdateTailPositions(PreviousTilePos);
+
+		// Now update the last tile position to the new head position.
+		LastTilePosition = GetActorLocation();
+
+		// Update the direction queue as per your existing logic.
 		UpdateDirection();
 
-		// We need to decrease the total move distance with the moved distance
 		TotalMoveDistance -= MoveDistance;
-
-		// And set move distance of what is left of the total move distance
 		MoveDistance = TotalMoveDistance;
-
-		// Decrease moved tile distance with one tile size
 		MovedTileDistance -= TileSize;
 	}
 
-	// If there are any move distance left, then move the snake that distance
+	// Move any remaining distance.
 	if (MoveDistance > 0.0f)
 	{
 		MoveSnake(MoveDistance);
@@ -190,3 +203,70 @@ void ASnakePawn::SetNextDirection(ESnakeDirection InDirection)
 {
 	DirectionQueue.Add(InDirection);
 }
+
+void ASnakePawn::GrowTail()
+{
+	if (!GetWorld()) return;
+
+	FActorSpawnParameters SpawnParams;
+	// Spawn the tail segment at the current head location (or LastTilePosition).
+	ASnakeTailSegment* NewSegment = GetWorld()->SpawnActor<ASnakeTailSegment>(
+		ASnakeTailSegment::StaticClass(), LastTilePosition, FRotator::ZeroRotator, SpawnParams);
+	if (NewSegment)
+	{
+		TailSegments.Add(NewSegment);
+		// Also add a target position entry for the new tail.
+		TailTargetPositions.Add(LastTilePosition);
+		UE_LOG(LogTemp, Warning, TEXT("Tail grown. Total segments: %d"), TailSegments.Num());
+	}
+}
+
+void ASnakePawn::UpdateTailTargets(const FVector& PreviousHeadPosition)
+{
+	if (TailSegments.Num() > 0)
+	{
+		// The first segment should target where the head was.
+		TailTargetPositions[0] = PreviousHeadPosition;
+
+		// Every subsequent tail segment should target the previous segment’s current location.
+		for (int32 i = 1; i < TailSegments.Num(); i++)
+		{
+			TailTargetPositions[i] = TailSegments[i - 1]->GetActorLocation();
+		}
+	}
+}
+
+
+void ASnakePawn::UpdateTailPositions(const FVector& PreviousTilePosition)
+{
+	if (TailSegments.Num() > 0)
+	{
+		// The first tail segment moves to where the head just was.
+		TailSegments[0]->SetActorLocation(PreviousTilePosition);
+
+		// Each subsequent segment moves to the previous segment's old position.
+		for (int32 i = 1; i < TailSegments.Num(); i++)
+		{
+			FVector PrevPos = TailSegments[i - 1]->GetActorLocation();
+			TailSegments[i]->SetActorLocation(PrevPos);
+		}
+	}
+}
+
+void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+								UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+								bool bFromSweep, const FHitResult & SweepResult)
+{
+	if (OtherActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Overlap detected with %s"), *OtherActor->GetName());
+	}
+
+	if (OtherActor && OtherActor->IsA(ASnakeFood::StaticClass()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Food overlap detected - calling GrowTail()"));
+		GrowTail();
+		OtherActor->Destroy();
+	}
+}
+

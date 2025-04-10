@@ -31,12 +31,26 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<AActor> DoorActor;
 
+	// Food actor class to spawn.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
+	TSubclassOf<AActor> FoodClass;
+
+	// Spawn interval (in seconds) for food.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Food")
+	float FoodSpawnInterval = 5.0f;
+
 	UPROPERTY()
 	TArray<AActor*> SpawnedActors;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+	FTimerHandle FoodTimerHandle;
+
+	// Function to spawn food.
+	UFUNCTION()
+	void SpawnFood();
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 

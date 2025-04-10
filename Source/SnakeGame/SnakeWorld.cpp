@@ -3,6 +3,7 @@
 
 #include "SnakeWorld.h"
 #include "Engine/World.h"
+#include "SnakeFood.h" 
 
 // Sets default values
 ASnakeWorld::ASnakeWorld()
@@ -99,6 +100,9 @@ void ASnakeWorld::OnConstruction(const FTransform& Transform)
 void ASnakeWorld::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Start a recurring timer for food spawn.
+	GetWorld()->GetTimerManager().SetTimer(FoodTimerHandle, this, &ASnakeWorld::SpawnFood, FoodSpawnInterval, true);
 	
 }
 
@@ -107,5 +111,20 @@ void ASnakeWorld::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void ASnakeWorld::SpawnFood()
+{
+	if (FoodClass)
+	{
+		// Define a random grid location. For example, if your level uses tiles of size 100,
+		// choose random multiples of 100 for X and Y.
+		int32 RandomX = FMath::RandRange(0, 9);  // Adjust range as needed.
+		int32 RandomY = FMath::RandRange(0, 9);
+		FVector SpawnLocation = FVector(RandomX * 100.0f, RandomY * 100.0f, 0.0f);
+
+		// Optionally check that the spawn location is not occupied by walls (or the snake).
+		GetWorld()->SpawnActor<AActor>(FoodClass, SpawnLocation, FRotator::ZeroRotator);
+	}
 }
 

@@ -8,6 +8,8 @@
 #include "Components/SphereComponent.h"
 #include "SnakePawn.generated.h"
 
+class ASnakeTailSegment;
+
 UCLASS()
 class SNAKEGAME_API ASnakePawn : public APawn
 {
@@ -27,6 +29,34 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ESnakeDirection Direction = ESnakeDirection::None;
+
+	// Array holding tail segment actors.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Snake")
+	TArray<ASnakeTailSegment*> TailSegments;
+
+	// Tracks the snake's tile position (used when moving from one tile to the next).
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Snake")
+	FVector LastTilePosition;
+
+	// Call to add a tail segment when food is eaten.
+	UFUNCTION(BlueprintCallable, Category = "Snake")
+	void GrowTail();
+	void UpdateTailTargets(const FVector& PreviousHeadPosition);
+
+	// Called after a full tile movement to update positions of each tail segment.
+	UFUNCTION(BlueprintCallable, Category = "Snake")
+	void UpdateTailPositions(const FVector& PreviousTilePosition);
+
+	// Tail target positions – one for each tail segment.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Snake")
+	TArray<FVector> TailTargetPositions;
+
+	// Overlap event for food pickup.
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+						bool bFromSweep, const FHitResult & SweepResult);
+
 
 protected:
 	// So that we can utilize gravity
