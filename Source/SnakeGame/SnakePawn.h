@@ -106,6 +106,7 @@ protected:
 	// Updates the direction each time a new tile is reached.
 	UFUNCTION()
 	void UpdateDirection();
+	FVector GetDirectionVector() const;
 
 	// Updates snake movement (called each Tick).
 	UFUNCTION()

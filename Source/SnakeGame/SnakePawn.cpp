@@ -85,6 +85,7 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		UE_LOG(LogTemp, Warning, TEXT("Food overlap detected - calling GrowTail()"));
 		GrowTail();
 		OtherActor->Destroy();
+		
 		return;
 	}
 
@@ -156,32 +157,40 @@ void ASnakePawn::MoveSnake(float Distance)
 // Updates snake movement based on elapsed time.
 void ASnakePawn::UpdateMovement(float DeltaTime)
 {
-	float TotalMoveDistance = Speed * DeltaTime;
-	float MoveDistance = TotalMoveDistance;
+	// Calculate total distance to move this tick.
+	float DistanceToTravel = Speed * DeltaTime;
+	FVector CurrentPosition = GetActorLocation();
 
-	while (MovedTileDistance + MoveDistance >= TileSize)
+	// Move in continuous steps until the remaining movement is less than needed to complete a tile.
+	while (DistanceToTravel > 0.0f)
 	{
-		MoveDistance = TileSize - MovedTileDistance;
+		float StepDistance = FMath::Min(DistanceToTravel, TileSize - MovedTileDistance);
+		// Move in the current direction.
+		CurrentPosition += GetDirectionVector() * StepDistance;
 
-		FVector PreviousTilePos = LastTilePosition;
-		FVector PreviousHeadPos = LastTilePosition;
+		// Update the accumulated distance.
+		MovedTileDistance += StepDistance;
+		DistanceToTravel -= StepDistance;
 
-		MoveSnake(MoveDistance);
-		UpdateTailTargets(PreviousHeadPos);
+		// If a full tile has been traversed, update state.
+		if (FMath::IsNearlyEqual(MovedTileDistance, TileSize) || MovedTileDistance > TileSize)
+		{
+			// Snap to grid (optional – helps avoid drift).
+			LastTilePosition = CurrentPosition;
+			MovedTileDistance = 0.0f;
 
-		LastTilePosition = GetActorLocation();
-		UpdateDirection();
+			// Update tail targets based on the completed tile move.
+			UpdateTailTargets(LastTilePosition);
 
-		TotalMoveDistance -= MoveDistance;
-		MoveDistance = TotalMoveDistance;
-		MovedTileDistance -= TileSize;
+			// Check and update the next queued direction.
+			UpdateDirection();
+		}
 	}
 
-	if (MoveDistance > 0.0f)
-	{
-		MoveSnake(MoveDistance);
-	}
+	// Finally set the new position.
+	SetActorLocation(CurrentPosition);
 }
+
 
 // Updates falling behavior and handles collision with the floor.
 void ASnakePawn::UpdateFalling(float DeltaTime)
@@ -247,6 +256,25 @@ void ASnakePawn::UpdateDirection()
 		break;
 	}
 }
+
+FVector ASnakePawn::GetDirectionVector() const
+{
+	// Returns a unit vector based on the current direction.
+	switch(Direction)
+	{
+	case ESnakeDirection::Up:
+		return FVector(1.0f, 0.0f, 0.0f);
+	case ESnakeDirection::Right:
+		return FVector(0.0f, 1.0f, 0.0f);
+	case ESnakeDirection::Down:
+		return FVector(-1.0f, 0.0f, 0.0f);
+	case ESnakeDirection::Left:
+		return FVector(0.0f, -1.0f, 0.0f);
+	default:
+		return FVector::ZeroVector;
+	}
+}
+
 
 // Adds a new direction to the movement queue.
 void ASnakePawn::SetNextDirection(ESnakeDirection InDirection)
