@@ -21,6 +21,16 @@ ASnakeWorld::ASnakeWorld()
 
 	InstancedWalls->SetupAttachment(RootComponent);
 
+	// Configure collision for walls.
+	InstancedWalls->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InstancedWalls->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	// Set it to overlap with all channels so that when the snake overlaps the wall,
+	// an overlap event is fired.
+	InstancedWalls->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+
+	// Tag the component as "Wall" so your SnakePawn can detect it.
+	InstancedWalls->ComponentTags.Add(FName("Wall"));
+
 	InstancedFloors = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("InstancedFloors"));
 
 	InstancedFloors->SetupAttachment(RootComponent);
