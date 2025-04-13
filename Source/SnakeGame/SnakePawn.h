@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -41,6 +39,8 @@ public:
 	// Call to add a tail segment when food is eaten.
 	UFUNCTION(BlueprintCallable, Category = "Snake")
 	void GrowTail();
+
+	// Update tail positions based on the snake movement.
 	void UpdateTailTargets(const FVector& PreviousHeadPosition);
 
 	// Called after a full tile movement to update positions of each tail segment.
@@ -51,15 +51,35 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Snake")
 	TArray<FVector> TailTargetPositions;
 
-	// Overlap event for food pickup.
+	// Called every frame.
+	virtual void Tick(float DeltaTime) override;
+
+	// Binds functionality to input.
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	// Blueprint callable jump function.
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Makes the snake jump."))
+	void Jump();
+
+	// Blueprint callable function to add a direction to the queue.
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Add a direction onto a queue where the first in line direction gets set and popped."))
+	void SetNextDirection(ESnakeDirection InDirection);
+
+	// Overlap event for collision handling.
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-						bool bFromSweep, const FHitResult & SweepResult);
+	                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	                    bool bFromSweep, const FHitResult & SweepResult);
 
+	// Game over function – called when a fatal collision occurs.
+	UFUNCTION(BlueprintCallable, Category = "Game")
+	void GameOver();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Snake")
+	TSubclassOf<ASnakeTailSegment> TailSegmentClass;
 
 protected:
-	// So that we can utilize gravity
+	// For gravity
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (ToolTip = "Used for falling and jumping."))
 	float VelocityZ = 0.0f;
 
@@ -72,44 +92,38 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (ToolTip = "The forward rotation of the snake."))
 	FRotator ForwardRotation;
 
-	// Direction queue that gets set and poped each time the snake reaches a new tile
+	// Direction queue that gets set and popped each time the snake reaches a new tile.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<ESnakeDirection> DirectionQueue;
 
+	// Tracks the distance moved within the current tile.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (ToolTip = "How long the snake has moved since reaching the last tile."))
 	float MovedTileDistance = 0.0f;
 
-	// Called when the game starts or when spawned
+	// Called when the game starts or when spawned.
 	virtual void BeginPlay() override;
 
-	// Updates the direction each time a new tile is reached
+	// Updates the direction each time a new tile is reached.
 	UFUNCTION()
 	void UpdateDirection();
 
-	// Updates snake movment (called from Tick)
+	// Updates snake movement (called each Tick).
 	UFUNCTION()
 	void UpdateMovement(float DeltaTime);
 
-	// Move the snake in the set distance
+	// Moves the snake by a specified distance.
 	UFUNCTION()
 	void MoveSnake(float Distance);
 
-	// Updates falling (called from Tick)
+	// Updates falling (called each Tick).
 	UFUNCTION()
 	void UpdateFalling(float DeltaTime);
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+private:
+	// Records recent head positions.
+	TArray<FVector> HeadPositionHistory;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	// Blueprint callable Jump function
-	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Makes the snake jump."))
-	void Jump();
-
-	// Blueprint callable SetNextDirection function
-	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Add a direction onto a queue where the first in line direction gets set and poped."))
-	void SetNextDirection(ESnakeDirection InDirection);
+	// Number of history entries between each tail segment.
+	UPROPERTY(EditAnywhere, Category="Snake|Tail")
+	int32 TailHistorySpacing = 5;
 };
