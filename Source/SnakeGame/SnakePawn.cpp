@@ -1,6 +1,7 @@
 #include "SnakePawn.h"
 #include "SnakeTailSegment.h"
 #include "SnakeFood.h"
+#include "SnakeWorld.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -71,21 +72,29 @@ void ASnakePawn::Tick(float DeltaTime)
 
 // Overlap event: Handles collision with food, tail, or walls.
 void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-                                bool bFromSweep, const FHitResult & SweepResult)
+								UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+								bool bFromSweep, const FHitResult & SweepResult)
 {
 	if (!OtherActor)
 	{
 		return;
 	}
 
-	// Collision with Food: Grow tail and destroy the food actor.
+	// Collision with Food: Grow tail, destroy the food, and request new food spawn.
 	if (OtherActor->IsA(ASnakeFood::StaticClass()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Food overlap detected - calling GrowTail()"));
 		GrowTail();
 		OtherActor->Destroy();
-		
+
+		// Retrieve the SnakeWorld actor and spawn new food.
+		ASnakeWorld* SnakeWorldActor = Cast<ASnakeWorld>(UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
+		if (SnakeWorldActor)
+		{
+			// Optionally add a slight delay before spawning the next apple.
+			// For immediate spawn, simply call SpawnFood() here.
+			SnakeWorldActor->SpawnFood();
+		}
 		return;
 	}
 
@@ -97,7 +106,7 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 
-	// Collision with Walls: Assuming wall actors have a tag "Wall".
+	// Collision with Walls: Trigger game over.
 	if (OtherActor->ActorHasTag("Wall"))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Collision with wall detected! Game Over!"));

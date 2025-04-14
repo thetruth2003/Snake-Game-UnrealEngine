@@ -56,7 +56,7 @@ public:
 
 	// Binds functionality to input.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+	
 	// Blueprint callable jump function.
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Makes the snake jump."))
 	void Jump();
@@ -68,8 +68,8 @@ public:
 	// Overlap event for collision handling.
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-	                    bool bFromSweep, const FHitResult & SweepResult);
+						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+						bool bFromSweep, const FHitResult & SweepResult);
 
 	// Game over function – called when a fatal collision occurs.
 	UFUNCTION(BlueprintCallable, Category = "Game")
