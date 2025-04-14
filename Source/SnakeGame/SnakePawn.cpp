@@ -39,17 +39,18 @@ void ASnakePawn::BeginPlay()
 FVector ASnakePawn::SnapToGrid(const FVector& InLocation) const
 {
 	// Without offset:
-	/*
+	
 	float SnappedX = FMath::RoundToFloat(InLocation.X / TileSize) * TileSize;
 	float SnappedY = FMath::RoundToFloat(InLocation.Y / TileSize) * TileSize;
 	return FVector(SnappedX, SnappedY, InLocation.Z);
-	*/
+	
     
-	 // Alternatively, with a half-tile offset (if needed):
+	 /* // Alternatively, with a half-tile offset (if needed):
 	constexpr float HalfTile = TileSize / 2.0f;
 	float SnappedX = FMath::RoundToFloat((InLocation.X - HalfTile) / TileSize) * TileSize + HalfTile;
-	float SnappedY = FMath::RoundToFloat(InLocation.Y / TileSize) * TileSize;
+	float SnappedY = FMath::RoundToFloat((InLocation.Y - HalfTile) / TileSize) * TileSize + HalfTile;
 	return FVector(SnappedX, SnappedY, InLocation.Z);
+	*/
 	
 }
 
