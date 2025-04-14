@@ -56,7 +56,7 @@ public:
 
 	// Binds functionality to input.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+
 	// Blueprint callable jump function.
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Makes the snake jump."))
 	void Jump();
@@ -68,8 +68,8 @@ public:
 	// Overlap event for collision handling.
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-						bool bFromSweep, const FHitResult & SweepResult);
+	                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	                    bool bFromSweep, const FHitResult & SweepResult);
 
 	// Game over function – called when a fatal collision occurs.
 	UFUNCTION(BlueprintCallable, Category = "Game")
@@ -106,6 +106,7 @@ protected:
 	// Updates the direction each time a new tile is reached.
 	UFUNCTION()
 	void UpdateDirection();
+
 	FVector GetDirectionVector() const;
 
 	// Updates snake movement (called each Tick).
@@ -125,6 +126,9 @@ private:
 	TArray<FVector> HeadPositionHistory;
 
 	// Number of history entries between each tail segment.
-	UPROPERTY(EditAnywhere, Category="Snake|Tail")
+	UPROPERTY(EditAnywhere, Category = "Snake|Tail")
 	int32 TailHistorySpacing = 5;
+
+	// *** NEW: Helper function to snap a position to the grid ***
+	FVector SnapToGrid(const FVector& InLocation) const;
 };

@@ -21,14 +21,36 @@ void ASnakePawn::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Initialize our last tile position.
-	LastTilePosition = GetActorLocation();
+	// Snap the snake to the nearest tile center.
+	FVector SnappedLocation = SnapToGrid(GetActorLocation());
+	SetActorLocation(SnappedLocation);
+	LastTilePosition = SnappedLocation; // Ensure the movement system starts on grid.
 
 	// Bind the overlap event on the collision component.
 	if (CollisionComponent)
 	{
 		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASnakePawn::OnOverlapBegin);
 	}
+}
+
+// Helper function that snaps a given location to the nearest tile center.
+// You can use the first version if your floor/wall meshes are centered,
+// or the alternate (commented) version if a half-tile offset is required.
+FVector ASnakePawn::SnapToGrid(const FVector& InLocation) const
+{
+	// Without offset:
+	/*
+	float SnappedX = FMath::RoundToFloat(InLocation.X / TileSize) * TileSize;
+	float SnappedY = FMath::RoundToFloat(InLocation.Y / TileSize) * TileSize;
+	return FVector(SnappedX, SnappedY, InLocation.Z);
+	*/
+    
+	 // Alternatively, with a half-tile offset (if needed):
+	constexpr float HalfTile = TileSize / 2.0f;
+	float SnappedX = FMath::RoundToFloat((InLocation.X - HalfTile) / TileSize) * TileSize + HalfTile;
+	float SnappedY = FMath::RoundToFloat(InLocation.Y / TileSize) * TileSize;
+	return FVector(SnappedX, SnappedY, InLocation.Z);
+	
 }
 
 // Called every frame.
@@ -91,8 +113,6 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		ASnakeWorld* SnakeWorldActor = Cast<ASnakeWorld>(UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
 		if (SnakeWorldActor)
 		{
-			// Optionally add a slight delay before spawning the next apple.
-			// For immediate spawn, simply call SpawnFood() here.
 			SnakeWorldActor->SpawnFood();
 		}
 		return;
@@ -130,8 +150,7 @@ void ASnakePawn::GameOver()
 	}
 }
 
-
-// Called to bind functionality to input.
+// Binds functionality to input.
 void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -200,7 +219,6 @@ void ASnakePawn::UpdateMovement(float DeltaTime)
 	SetActorLocation(CurrentPosition);
 }
 
-
 // Updates falling behavior and handles collision with the floor.
 void ASnakePawn::UpdateFalling(float DeltaTime)
 {
@@ -266,10 +284,10 @@ void ASnakePawn::UpdateDirection()
 	}
 }
 
+// Returns a unit vector based on the current direction.
 FVector ASnakePawn::GetDirectionVector() const
 {
-	// Returns a unit vector based on the current direction.
-	switch(Direction)
+	switch (Direction)
 	{
 	case ESnakeDirection::Up:
 		return FVector(1.0f, 0.0f, 0.0f);
@@ -283,7 +301,6 @@ FVector ASnakePawn::GetDirectionVector() const
 		return FVector::ZeroVector;
 	}
 }
-
 
 // Adds a new direction to the movement queue.
 void ASnakePawn::SetNextDirection(ESnakeDirection InDirection)
