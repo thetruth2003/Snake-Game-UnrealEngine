@@ -12,14 +12,30 @@ ASnakePawn::ASnakePawn()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
+	// Create the collision component and attach it.
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	CollisionComponent->SetupAttachment(RootComponent);
+		
+	// Hard override any Blueprint modifications: force collision to query-only and overlap with all channels.
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionComponent->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+	CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	CollisionComponent->SetGenerateOverlapEvents(true);
 }
 
 // Called when the game starts or when spawned.
 void ASnakePawn::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Reapply collision settings to override any changes made in Blueprint.
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CollisionComponent->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+		CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+		CollisionComponent->SetGenerateOverlapEvents(true);
+	}
 
 	// Snap the snake to the nearest tile center.
 	FVector SnappedLocation = SnapToGrid(GetActorLocation());
@@ -94,9 +110,11 @@ void ASnakePawn::Tick(float DeltaTime)
 }
 
 // Overlap event: Handles collision with food, tail, or walls.
+// In SnakePawn.cpp
+
 void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 								UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-								bool bFromSweep, const FHitResult & SweepResult)
+								bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!OtherActor)
 	{
@@ -127,14 +145,15 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 
-	// Collision with Walls: Trigger game over.
-	if (OtherActor->ActorHasTag("Wall"))
+	// Collision with Walls: Check if the actor or the component has the "Wall" tag.
+	if (OtherActor->ActorHasTag("Wall") || (OtherComp && OtherComp->ComponentHasTag("Wall")))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Collision with wall detected! Game Over!"));
 		GameOver();
 		return;
 	}
 }
+
 
 // GameOver: Currently restarts the level.
 void ASnakePawn::GameOver()

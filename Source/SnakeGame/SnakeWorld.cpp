@@ -17,9 +17,12 @@ ASnakeWorld::ASnakeWorld()
     // Create and set up the wall instances.
     InstancedWalls = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("InstancedWalls"));
     InstancedWalls->SetupAttachment(RootComponent);
+    // Hard override: Use QueryOnly collision and Overlap responses.
     InstancedWalls->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     InstancedWalls->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
     InstancedWalls->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+    // Ensure the "Wall" tag is present.
+    InstancedWalls->ComponentTags.Empty();
     InstancedWalls->ComponentTags.Add(FName("Wall"));
 
     // Create and set up the floor instances.
@@ -45,6 +48,16 @@ void ASnakeWorld::OnConstruction(const FTransform& Transform)
     
     // Clear previous floor tile locations.
     FloorTileLocations.Empty();
+
+    // Reapply collision settings to override any Blueprint changes.
+    InstancedWalls->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    InstancedWalls->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+    InstancedWalls->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+    if (!InstancedWalls->ComponentTags.Contains(FName("Wall")))
+    {
+        InstancedWalls->ComponentTags.Empty();
+        InstancedWalls->ComponentTags.Add(FName("Wall"));
+    }
 
     // Load level layout from a text file.
     TArray<FString> Lines;
