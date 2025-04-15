@@ -128,7 +128,6 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		GrowTail();
 		OtherActor->Destroy();
 
-		// Retrieve the SnakeWorld actor and spawn new food.
 		ASnakeWorld* SnakeWorldActor = Cast<ASnakeWorld>(UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
 		if (SnakeWorldActor)
 		{
@@ -137,15 +136,25 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 
-	// Collision with Tail Segment: Trigger game over.
+	// Collision with Tail Segment: Check the collision flag.
 	if (OtherActor->IsA(ASnakeTailSegment::StaticClass()))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Collision with tail detected! Game Over!"));
-		GameOver();
-		return;
+		ASnakeTailSegment* TailSeg = Cast<ASnakeTailSegment>(OtherActor);
+		// Only trigger game over if this tail segment is fully enabled for collision.
+		if (TailSeg && TailSeg->bCanCollide)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Collision with tail detected! Game Over!"));
+			GameOver();
+			return;
+		}
+		else
+		{
+			// Ignore collision if the tail segment is still in its 'cooldown' phase.
+			return;
+		}
 	}
 
-	// Collision with Walls: Check if the actor or the component has the "Wall" tag.
+	// Collision with Walls: Check if the actor or component has the "Wall" tag.
 	if (OtherActor->ActorHasTag("Wall") || (OtherComp && OtherComp->ComponentHasTag("Wall")))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Collision with wall detected! Game Over!"));
@@ -153,6 +162,7 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 }
+
 
 
 // GameOver: Currently restarts the level.
@@ -342,12 +352,33 @@ void ASnakePawn::GrowTail()
 	ASnakeTailSegment* NewSegment = GetWorld()->SpawnActor<ASnakeTailSegment>(SpawnClass, LastTilePosition, FRotator::ZeroRotator, SpawnParams);
 	if (NewSegment)
 	{
+		// Ensure collision is disabled and the flag is false.
+		NewSegment->MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSegment->bCanCollide = false;
+
+		// Schedule re-enabling collision after a delay (0.3 seconds in this example).
+		FTimerHandle TimerHandle;
+		FTimerDelegate TimerDel;
+		TimerDel.BindLambda([NewSegment]()
+		{
+			if (NewSegment)
+			{
+				// Re-enable collision to QueryOnly.
+				NewSegment->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+				NewSegment->bCanCollide = true;
+			}
+		});
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDel, 0.3f, false);
+
 		TailSegments.Add(NewSegment);
-		// Also add a target position entry for the new tail.
+		// Also add a target position entry for the new tail segment.
 		TailTargetPositions.Add(LastTilePosition);
+
 		UE_LOG(LogTemp, Warning, TEXT("Tail grown. Total segments: %d"), TailSegments.Num());
 	}
 }
+
+
 
 // Updates tail targets to create smooth following.
 void ASnakePawn::UpdateTailTargets(const FVector& PreviousHeadPosition)

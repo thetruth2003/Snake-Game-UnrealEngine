@@ -6,7 +6,6 @@ ASnakeTailSegment::ASnakeTailSegment()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// Create the mesh component and set as the root.
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
 
@@ -21,12 +20,14 @@ ASnakeTailSegment::ASnakeTailSegment()
 		UE_LOG(LogTemp, Error, TEXT("Cube mesh not found!"));
 	}
 
-	// Hard override collision properties:
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	// Adjust the scale if necessary.
+	MeshComponent->SetWorldScale3D(FVector(0.5f));
+
+	// Hard override collision to QueryOnly and disable it initially.
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	MeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 
-	// Adjust mesh scale as needed.
-	MeshComponent->SetWorldScale3D(FVector(0.5f));
-
+	// Initially disable collision effect.
+	bCanCollide = false;
 }
