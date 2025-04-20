@@ -1,6 +1,6 @@
-// SnakeWorld.cpp
-
 #include "SnakeWorld.h"
+
+#include "Definitions.h"
 #include "Engine/World.h"
 #include "SnakeFood.h"
 #include "Misc/FileHelper.h"
@@ -58,7 +58,24 @@ void ASnakeWorld::OnConstruction(const FTransform& Transform)
         InstancedWalls->ComponentTags.Empty();
         InstancedWalls->ComponentTags.Add(FName("Wall"));
     }
+    LoadLevelFromText();
+}
 
+void ASnakeWorld::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // Spawn the initial apple.
+    SpawnFood();
+}
+
+void ASnakeWorld::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+}
+
+void ASnakeWorld::LoadLevelFromText()
+{
     // Load level layout from a text file.
     TArray<FString> Lines;
     FString FilePath = FPaths::ProjectDir() + TEXT("Levels/Level1.txt");
@@ -110,20 +127,7 @@ void ASnakeWorld::OnConstruction(const FTransform& Transform)
             }
             y++;
         }
-    }
-}
-
-void ASnakeWorld::BeginPlay()
-{
-    Super::BeginPlay();
-
-    // Spawn the initial apple.
-    SpawnFood();
-}
-
-void ASnakeWorld::Tick(float DeltaTime)
-{
-    Super::Tick(DeltaTime);
+    } 
 }
 
 void ASnakeWorld::SpawnFood()

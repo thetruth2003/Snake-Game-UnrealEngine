@@ -1,5 +1,3 @@
-// SnakeWorld.h
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -50,6 +48,13 @@ public:
 	// Spawns a food actor on a random floor tile.
 	UFUNCTION()
 	void SpawnFood();
+
+	/** 
+	 * Clears out the current tile instances and (re)builds walls/floors
+	 * from Levels/Level<Index>.txt
+	 */
+	UFUNCTION(BlueprintCallable, Category="Level")
+	void LoadLevelFromText();
 
 protected:
 	// Called when the game starts or when spawned.

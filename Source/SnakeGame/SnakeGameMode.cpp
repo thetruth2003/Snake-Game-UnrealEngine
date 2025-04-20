@@ -32,6 +32,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 		CurrentWidget->RemoveFromParent();
 		CurrentWidget = nullptr;
 	}
+	
 	// remove pause widget if leaving Pause
 	if (PauseWidget && NewState != EGameState::Pause)
 	{
@@ -39,8 +40,10 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 		PauseWidget->RemoveFromParent();
 		PauseWidget = nullptr;
 	}
-
+	
 	CurrentState = NewState;
+	
+	
 
 	switch (CurrentState)
 	{
