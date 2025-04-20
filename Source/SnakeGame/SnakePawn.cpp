@@ -1,6 +1,7 @@
 #include "SnakePawn.h"
 #include "SnakeTailSegment.h"
 #include "SnakeFood.h"
+#include "SnakeGameMode.h"
 #include "SnakeWorld.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -170,7 +171,15 @@ void ASnakePawn::GameOver()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Game Over triggered in GameOver() function."));
 
-	// Restart the current level.
+	// Get a reference to your custom game mode.
+	ASnakeGameMode* GameMode = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (GameMode)
+	{
+		// Transition to the Game Over state.
+		GameMode->SetGameState(EGameState::Outro);
+	}
+
+	/* // Restart the current level.
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -178,12 +187,26 @@ void ASnakePawn::GameOver()
 		CurrentLevel.RemoveFromStart(World->StreamingLevelsPrefix);
 		UGameplayStatics::OpenLevel(World, FName(*CurrentLevel));
 	}
+	*/
 }
 
-// Binds functionality to input.
 void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAction("TriggerGameOver", IE_Pressed, this, &ASnakePawn::GameOver);
+
+}
+
+void ASnakePawn::HandlePauseToggle()
+{
+	ASnakeGameMode* GM = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (!GM) return;
+
+	if (GM->CurrentState == EGameState::Game)
+		GM->SetGameState(EGameState::Pause);
+	else if (GM->CurrentState == EGameState::Pause)
+		GM->SetGameState(EGameState::Game);
 }
 
 // Moves the snake by the given distance.
