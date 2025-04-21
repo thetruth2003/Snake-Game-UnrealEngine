@@ -55,7 +55,7 @@ void ASnakePawn::BeginPlay()
 // Helper function that snaps a given location to the nearest tile center.
 // You can use the first version if your floor/wall meshes are centered,
 // or the alternate (commented) version if a half-tile offset is required.
-FVector ASnakePawn::SnapToGrid(const FVector& InLocation) const
+FVector ASnakePawn::SnapToGrid(const FVector& InLocation)
 {
 	// Without offset:
 	
@@ -127,14 +127,16 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 	// Collision with Food: Grow tail, destroy the food, and request new food spawn.
 	if (OtherActor->IsA(ASnakeFood::StaticClass()))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Food overlap detected - calling GrowTail()"));
 		GrowTail();
 		OtherActor->Destroy();
 
-		ASnakeWorld* SnakeWorldActor = Cast<ASnakeWorld>(UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
-		if (SnakeWorldActor)
+		// Notify the GameMode instead of directly spawning
+		ASnakeGameMode* GM = Cast<ASnakeGameMode>(
+			UGameplayStatics::GetGameMode(GetWorld())
+		);
+		if (GM)
 		{
-			SnakeWorldActor->SpawnFood();
+			GM->NotifyAppleEaten();
 		}
 		return;
 	}

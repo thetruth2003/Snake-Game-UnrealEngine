@@ -49,12 +49,20 @@ public:
 	UFUNCTION()
 	void SpawnFood();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level")
+	int32 LevelIndex = 1;
+
 	/** 
 	 * Clears out the current tile instances and (re)builds walls/floors
 	 * from Levels/Level<Index>.txt
 	 */
 	UFUNCTION(BlueprintCallable, Category="Level")
 	void LoadLevelFromText();
+	void LoadLevelFromTextOld();
+
+	/** Returns true if Levels/Level<Index>.txt actually exists on disk */
+	UFUNCTION(BlueprintCallable, Category="Level")
+	bool DoesLevelExist(int32 Index) const;
 
 protected:
 	// Called when the game starts or when spawned.

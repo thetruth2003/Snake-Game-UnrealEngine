@@ -63,6 +63,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUserWidget> GameOverWidgetClass;
 
+	// How many apples must be eaten before advancing
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level")
+	int32 ApplesToFinish = 5;
+
+	// How many apples have been eaten so far
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Level")
+	int32 ApplesEaten = 0;
+
+	// Call this whenever the snake eats an apple
+	UFUNCTION()
+	void NotifyAppleEaten();
+
 protected:
 	// Currently displayed UI widget (if any).
 	UPROPERTY()

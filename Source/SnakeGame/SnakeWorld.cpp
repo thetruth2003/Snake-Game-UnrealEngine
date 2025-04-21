@@ -74,7 +74,94 @@ void ASnakeWorld::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
+bool ASnakeWorld::DoesLevelExist(int32 Index) const
+{
+    // e.g. "<Project>/Content/Levels/Level3.txt"
+    const FString FileName = FString::Printf(TEXT("Levels/Level%d.txt"), Index);
+    const FString FullPath = FPaths::ProjectContentDir() / FileName;
+    return FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath);
+}
+
 void ASnakeWorld::LoadLevelFromText()
+{
+    // —————— CLEAR OLD LEVEL ——————
+    InstancedWalls->ClearInstances();
+    InstancedFloors->ClearInstances();
+    for (AActor* Actor : SpawnedActors)
+    {
+        if (Actor)
+        {
+            Actor->Destroy();
+        }
+    }
+    SpawnedActors.Empty();
+    FloorTileLocations.Empty();
+    // ——————————————————————————
+
+    FString FileName = FString::Printf(TEXT("Levels/Level%d.txt"), LevelIndex);
+    FString FilePath = FPaths::ProjectContentDir() + FileName;
+    UE_LOG(LogTemp, Warning, TEXT("[LevelLoad] Attempting to load: %s"), *FilePath);
+    
+    TArray<FString> Lines;
+
+    if (!FFileHelper::LoadFileToStringArray(Lines, *FilePath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[LevelLoad] Failed to load file!"));
+        return;
+    }
+    UE_LOG(LogTemp, Warning, TEXT("[LevelLoad] Loaded %d lines"), Lines.Num());
+    
+    if (FFileHelper::LoadFileToStringArray(Lines, *FilePath))
+    {
+        int y = 0;
+        // Loop through each line of the file.
+        for (const FString& Line : Lines)
+        {
+            for (int x = 0; x < Line.Len(); x++)
+            {
+                // Calculate the transform for the current tile.
+                // Here (Lines.Num() - y)*100 makes X the forward direction.
+                FTransform TileTransform(FRotator::ZeroRotator, FVector((Lines.Num() - y) * 100, x * 100, 0.0f));
+                
+                // Process each character in the level file.
+                switch (Line[x])
+                {
+                    case '#':
+                        // Wall tile.
+                        InstancedWalls->AddInstance(TileTransform);
+                        break;
+
+                    case 'O':
+                        // Trapdoor (optional logic).
+                        break;
+
+                    case 'D':
+                        // Door tile: add floor instance and optionally spawn door actor.
+                        InstancedFloors->AddInstance(TileTransform);
+                        if (IsValid(DoorActor))
+                        {
+                            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(DoorActor, TileTransform, FActorSpawnParameters());
+                            if (SpawnedActor)
+                            {
+                                SpawnedActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+                                SpawnedActors.Add(SpawnedActor);
+                            }
+                        }
+                        break;
+
+                    case '.':
+                        // Valid floor tile: add instance and record the position.
+                        InstancedFloors->AddInstance(TileTransform);
+                        FloorTileLocations.Add(TileTransform.GetTranslation());
+                        break;
+                }
+            }
+            y++;
+        }
+    } 
+}
+
+void ASnakeWorld::LoadLevelFromTextOld()
 {
     // Load level layout from a text file.
     TArray<FString> Lines;

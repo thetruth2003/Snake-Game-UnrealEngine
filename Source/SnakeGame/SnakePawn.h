@@ -132,5 +132,5 @@ private:
 	int32 TailHistorySpacing = 5;
 
 	// *** NEW: Helper function to snap a position to the grid ***
-	FVector SnapToGrid(const FVector& InLocation) const;
+	static FVector SnapToGrid(const FVector& InLocation);
 };
