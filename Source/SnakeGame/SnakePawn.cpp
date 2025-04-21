@@ -13,6 +13,8 @@ ASnakePawn::ASnakePawn()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
+	AutoPossessPlayer = EAutoReceiveInput::Player0;
+
 	// Create the collision component and attach it.
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	CollisionComponent->SetupAttachment(RootComponent);
@@ -193,7 +195,8 @@ void ASnakePawn::GameOver()
 void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	
+	PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &ASnakePawn::HandlePauseToggle);
 	PlayerInputComponent->BindAction("TriggerGameOver", IE_Pressed, this, &ASnakePawn::GameOver);
 
 }
