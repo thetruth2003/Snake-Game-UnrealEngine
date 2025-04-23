@@ -4,6 +4,7 @@
 #include "Definitions.h"
 #include "GameFramework/Pawn.h"
 #include "Components/SphereComponent.h"
+#include "InputMappingContext.h" 
 #include "SnakePawn.generated.h"
 
 class ASnakeTailSegment;

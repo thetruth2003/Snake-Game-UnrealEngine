@@ -1,123 +1,129 @@
+// SnakeGameMode.cpp
 #include "SnakeGameMode.h"
-
 #include "SnakeWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/LocalPlayer.h"
 
-ASnakeGameMode::ASnakeGameMode(): CurrentWidget(nullptr)
+ASnakeGameMode::ASnakeGameMode()
+    : CurrentWidget(nullptr)
 {
-	// Start in the main menu.
-	CurrentState = EGameState::MainMenu;
+    CurrentState = EGameState::MainMenu;
 }
 
 void ASnakeGameMode::BeginPlay()
 {
-	Super::BeginPlay();
-	SetGameState(CurrentState);
-	if (MainMenuWidgetClass)
-	{
-		CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
-		if (CurrentWidget)
-		{
-			CurrentWidget->AddToViewport();
-		}
-	}
+    Super::BeginPlay();
 
+    SetGameState(CurrentState);
+    if (MainMenuWidgetClass)
+    {
+        CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
+        CurrentWidget->AddToViewport();
+    }
+}
+
+void ASnakeGameMode::SetGameType(EGameType NewType)
+{
+    CurrentGameType = NewType;
+    UE_LOG(LogTemp, Log, TEXT("GameType set to %s"), *UEnum::GetValueAsString(NewType));
+
+    // Add second local player when needed
+    if ((NewType == EGameType::Coop || NewType == EGameType::PvP)
+        && GetGameInstance()->GetNumLocalPlayers() < 2)
+    {
+        UGameplayStatics::CreatePlayer(GetWorld(), 1, true);
+    }
+
+    // Enter gameplay
+    SetGameState(EGameState::Game);
+}
+
+void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
+{
+    Super::PostLogin(NewPlayer);
+
+    if (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP)
+    {
+        int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
+        TSubclassOf<ASnakePawn> ChosenBP = (Id == 0) ? Player1PawnBP : Player2PawnBP;
+
+        if (ChosenBP)
+        {
+            FVector SpawnLoc = (Id == 0) ? FVector(0,0,0) : FVector(400,1000,0);
+            FRotator SpawnRot = FRotator::ZeroRotator;
+            FActorSpawnParameters Params;
+
+            ASnakePawn* Pawn = GetWorld()->SpawnActor<ASnakePawn>(
+                ChosenBP, SpawnLoc, SpawnRot, Params);
+            if (Pawn)
+            {
+                NewPlayer->Possess(Pawn);
+            }
+        }
+    }
 }
 
 void ASnakeGameMode::NotifyAppleEaten()
 {
-	ApplesEaten++;
+    ApplesEaten++;
 
-	// Find the world actor
-	ASnakeWorld* World = Cast<ASnakeWorld>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-	);
-	if (!World) return;
+    ASnakeWorld* World = Cast<ASnakeWorld>(
+        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
+    if (!World) return;
 
-	if (ApplesEaten < ApplesToFinish)
-	{
-		// Still in the same level: just spawn another apple
-		World->SpawnFood();
-	}
-	else
-	{
-		// 1) Pause the game
-		SetGameState(EGameState::Pause);
-
-		// 2) Compute what the next level index would be
-		int32 NextLevel = World->LevelIndex + 1;
-
-		// 3) If that level file doesn’t exist, go to Game Over:
-		if (!World->DoesLevelExist(NextLevel))
-		{
-			SetGameState(EGameState::Outro);
-			return;
-		}
-
-		// 4) Otherwise load and resume as before:
-		World->LevelIndex = NextLevel;
-		World->LoadLevelFromText();
-		World->SpawnFood();
-		ApplesEaten = 0;
-		SetGameState(EGameState::Game);
-	}
+    if (ApplesEaten < ApplesToFinish)
+    {
+        World->SpawnFood();
+    }
+    else
+    {
+        SetGameState(EGameState::Pause);
+        int32 Next = World->LevelIndex + 1;
+        if (!World->DoesLevelExist(Next))
+        {
+            SetGameState(EGameState::Outro);
+            return;
+        }
+        World->LevelIndex = Next;
+        World->LoadLevelFromText();
+        World->SpawnFood();
+        ApplesEaten = 0;
+        SetGameState(EGameState::Game);
+    }
 }
 
 void ASnakeGameMode::SetGameState(EGameState NewState)
 {
-	// remove current widget if any
-	if (CurrentWidget)
-	{
-		//CurrentWidget->RemoveFromViewport();
-		CurrentWidget->RemoveFromParent();
-		CurrentWidget = nullptr;
-	}
-	
-	// remove pause widget if leaving Pause
-	if (PauseWidget && NewState != EGameState::Pause)
-	{
-		//PauseWidget->RemoveFromViewport();
-		PauseWidget->RemoveFromParent();
-		PauseWidget = nullptr;
-	}
-	
-	CurrentState = NewState;
-	
-	
+    if (CurrentWidget)    { CurrentWidget->RemoveFromParent(); CurrentWidget = nullptr; }
+    if (PauseWidget)      { PauseWidget->RemoveFromParent(); PauseWidget = nullptr; }
+    CurrentState = NewState;
 
-	switch (CurrentState)
-	{
-	case EGameState::MainMenu:
-		UGameplayStatics::SetGamePaused(GetWorld(), true);
-		if (MainMenuWidgetClass)
-		{
-			CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
-			CurrentWidget->AddToViewport();
-		}
-		break;
+    switch (CurrentState)
+    {
+        case EGameState::MainMenu:
+            UGameplayStatics::SetGamePaused(GetWorld(), true);
+            if (MainMenuWidgetClass)
+                CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
+            break;
 
-	case EGameState::Game:
-		UGameplayStatics::SetGamePaused(GetWorld(), false);
-		// (re)load level logic here...
-		break;
+        case EGameState::Game:
+            UGameplayStatics::SetGamePaused(GetWorld(), false);
+            break;
 
-	case EGameState::Pause:
-		UGameplayStatics::SetGamePaused(GetWorld(), true);
-		if (PauseMenuWidgetClass)
-		{
-			PauseWidget = CreateWidget<UUserWidget>(GetWorld(), PauseMenuWidgetClass);
-			PauseWidget->AddToViewport();
-		}
-		break;
+        case EGameState::Pause:
+            UGameplayStatics::SetGamePaused(GetWorld(), true);
+            if (PauseMenuWidgetClass)
+                PauseWidget = CreateWidget<UUserWidget>(GetWorld(), PauseMenuWidgetClass);
+            break;
 
-	case EGameState::Outro:
-		UGameplayStatics::SetGamePaused(GetWorld(), true);
-		if (GameOverWidgetClass)
-		{
-			CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), GameOverWidgetClass);
-			CurrentWidget->AddToViewport();
-		}
-		break;
-	}
+        case EGameState::Outro:
+            UGameplayStatics::SetGamePaused(GetWorld(), true);
+            if (GameOverWidgetClass)
+                CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), GameOverWidgetClass);
+            break;
+    }
+
+    if (CurrentWidget) CurrentWidget->AddToViewport();
+    if (PauseWidget)   PauseWidget->AddToViewport();
 }

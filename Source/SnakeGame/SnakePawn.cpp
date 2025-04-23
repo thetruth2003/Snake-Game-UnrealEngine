@@ -4,6 +4,7 @@
 #include "SnakeGameMode.h"
 #include "SnakeWorld.h"
 #include "Kismet/GameplayStatics.h"
+#include "EnhancedInputSubsystems.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
@@ -208,10 +209,15 @@ void ASnakePawn::HandlePauseToggle()
 	ASnakeGameMode* GM = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (!GM) return;
 
-	if (GM->CurrentState == EGameState::Game)
+	// Use the public getter instead of accessing the private member directly
+	if (GM->GetCurrentState() == EGameState::Game)
+	{
 		GM->SetGameState(EGameState::Pause);
-	else if (GM->CurrentState == EGameState::Pause)
+	}
+	else if (GM->GetCurrentState() == EGameState::Pause)
+	{
 		GM->SetGameState(EGameState::Game);
+	}
 }
 
 // Moves the snake by the given distance.

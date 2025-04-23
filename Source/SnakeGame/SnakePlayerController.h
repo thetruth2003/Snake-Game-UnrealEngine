@@ -1,0 +1,23 @@
+// SnakePlayerController.h
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerController.h"
+#include "InputMappingContext.h"
+#include "SnakePlayerController.generated.h"
+
+UCLASS()
+class SNAKEGAME_API ASnakePlayerController : public APlayerController
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	UInputMappingContext* P1Mapping;
+
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	UInputMappingContext* P2Mapping;
+
+protected:
+	virtual void BeginPlay() override;
+};
