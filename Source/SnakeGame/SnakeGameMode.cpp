@@ -43,23 +43,17 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 {
     Super::PostLogin(NewPlayer);
 
-    if (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP)
+    int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
+    if (Id == 1 && (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP))
     {
-        int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
-        TSubclassOf<ASnakePawn> ChosenBP = (Id == 0) ? Player1PawnBP : Player2PawnBP;
-
-        if (ChosenBP)
+        FVector SpawnLoc(400,1000,0);
+        FActorSpawnParameters Params;
+        // spawn BP_SnakePawn2 only
+        if (Player2PawnBP)
         {
-            FVector SpawnLoc = (Id == 0) ? FVector(0,0,0) : FVector(400,1000,0);
-            FRotator SpawnRot = FRotator::ZeroRotator;
-            FActorSpawnParameters Params;
-
             ASnakePawn* Pawn = GetWorld()->SpawnActor<ASnakePawn>(
-                ChosenBP, SpawnLoc, SpawnRot, Params);
-            if (Pawn)
-            {
-                NewPlayer->Possess(Pawn);
-            }
+                Player2PawnBP, SpawnLoc, FRotator::ZeroRotator, Params);
+            if (Pawn) NewPlayer->Possess(Pawn);
         }
     }
 }
