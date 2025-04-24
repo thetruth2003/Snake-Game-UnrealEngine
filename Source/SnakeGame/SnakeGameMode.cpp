@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/LocalPlayer.h"
+#include "GameFramework/PlayerStart.h"
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
@@ -46,14 +47,42 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
     int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
     if (Id == 1 && (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP))
     {
-        FVector SpawnLoc(400,1000,0);
+        // Try to find the PlayerStart with tag "PlayerStart2"
+        APlayerStart* TargetStart = nullptr;
+        TArray<AActor*> FoundStarts;
+        UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), FoundStarts);
+        for (AActor* Actor : FoundStarts)
+        {
+            if (Actor->ActorHasTag(FName("PlayerStart2")))
+            {
+                TargetStart = Cast<APlayerStart>(Actor);
+                break;
+            }
+        }
+
+        FTransform SpawnTransform;
+        if (TargetStart)
+        {
+            SpawnTransform = TargetStart->GetActorTransform();
+        }
+        else
+        {
+            // Fallback to your old location
+            SpawnTransform = FTransform(FRotator::ZeroRotator, FVector(400,1000,0));
+            UE_LOG(LogTemp, Warning, TEXT("PlayerStart2 not found, using fallback location."));
+        }
+
         FActorSpawnParameters Params;
-        // spawn BP_SnakePawn2 only
+        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
         if (Player2PawnBP)
         {
             ASnakePawn* Pawn = GetWorld()->SpawnActor<ASnakePawn>(
-                Player2PawnBP, SpawnLoc, FRotator::ZeroRotator, Params);
-            if (Pawn) NewPlayer->Possess(Pawn);
+                Player2PawnBP, SpawnTransform, Params);
+            if (Pawn)
+            {
+                NewPlayer->Possess(Pawn);
+                UE_LOG(LogTemp, Log, TEXT("Spawned P2 at %s"), *SpawnTransform.GetLocation().ToString());
+            }
         }
     }
 }

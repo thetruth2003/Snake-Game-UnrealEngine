@@ -18,6 +18,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* P2Mapping;
 
+	// SnakePlayerController.h
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	UInputMappingContext* SnakeMapping;
+
 protected:
 	virtual void BeginPlay() override;
 };
