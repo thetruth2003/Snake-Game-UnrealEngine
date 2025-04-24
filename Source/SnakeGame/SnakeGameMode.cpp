@@ -1,5 +1,7 @@
 // SnakeGameMode.cpp
 #include "SnakeGameMode.h"
+
+#include "SnakeAIController.h"
 #include "SnakeWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
@@ -27,16 +29,79 @@ void ASnakeGameMode::BeginPlay()
 void ASnakeGameMode::SetGameType(EGameType NewType)
 {
     CurrentGameType = NewType;
-    UE_LOG(LogTemp, Log, TEXT("GameType set to %s"), *UEnum::GetValueAsString(NewType));
+    UE_LOG(LogTemp, Log, TEXT("GameType set to %s"),
+           *UEnum::GetValueAsString(NewType));
 
-    // Add second local player when needed
+    UWorld* W = GetWorld();
+    if (!W) return;
+
+    // 1) If Coop or PvP, spawn second human player:
     if ((NewType == EGameType::Coop || NewType == EGameType::PvP)
         && GetGameInstance()->GetNumLocalPlayers() < 2)
     {
-        UGameplayStatics::CreatePlayer(GetWorld(), 1, true);
+        UGameplayStatics::CreatePlayer(W, 1, true);
     }
 
-    // Enter gameplay
+    // 2) If PvAI or CoopAI, spawn exactly one AI snake:
+    if (NewType == EGameType::PvAI || NewType == EGameType::CoopAI)
+    {
+        if (!SpawnedAISnake)
+        {
+            // find PlayerStart2 or fallback:
+            FTransform SpawnT;
+            APlayerStart* P2 = nullptr;
+            TArray<AActor*> Starts;
+            UGameplayStatics::GetAllActorsOfClass(W, APlayerStart::StaticClass(), Starts);
+            for (AActor* A : Starts)
+            {
+                if (A->ActorHasTag(FName("PlayerStart2")))
+                {
+                    P2 = Cast<APlayerStart>(A);
+                    break;
+                }
+            }
+            if (P2) SpawnT = P2->GetActorTransform();
+            else
+            {
+                SpawnT.SetLocation(FVector(400,1000,0));
+                UE_LOG(LogTemp, Warning,
+                       TEXT("PlayerStart2 not found, using fallback location."));
+            }
+
+            // choose which BP to spawn: AI‐specific or reuse P2
+            auto& ChosenBP = AISnakePawnBP ? AISnakePawnBP : Player2PawnBP;
+            if (ChosenBP)
+            {
+                FActorSpawnParameters Params;
+                Params.SpawnCollisionHandlingOverride =
+                    ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+                // spawn the pawn
+                ASnakePawn* NewAI = W->SpawnActor<ASnakePawn>(ChosenBP, SpawnT, Params);
+                if (NewAI)
+                {
+                    SpawnedAISnake = NewAI;
+
+                    // spawn & possess with our AI Controller
+                    ASnakeAIController* AICon =
+                        W->SpawnActor<ASnakeAIController>(ASnakeAIController::StaticClass());
+                    if (AICon)
+                    {
+                        AICon->Possess(NewAI);
+                        UE_LOG(LogTemp, Log,
+                               TEXT("Spawned & possessed AI snake with %s"),
+                               *ChosenBP->GetName());
+                    }
+                }
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("AI snake already spawned; skipping."));
+        }
+    }
+
+    // 3) Finally, go live
     SetGameState(EGameState::Game);
 }
 

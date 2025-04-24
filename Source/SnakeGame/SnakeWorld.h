@@ -67,10 +67,12 @@ public:
 protected:
 	// Called when the game starts or when spawned.
 	virtual void BeginPlay() override;
+	
 
 public:    
 	// Called every frame.
 	virtual void Tick(float DeltaTime) override;
+	const TArray<FVector>& GetFloorTileLocations() const { return FloorTileLocations; }
 
 private:
 	// Array holding locations of floor tiles (read from the level file).

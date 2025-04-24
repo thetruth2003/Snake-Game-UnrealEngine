@@ -50,6 +50,9 @@ public:
     UPROPERTY(EditDefaultsOnly, Category="Spawning")
     TSubclassOf<ASnakePawn> Player2PawnBP;
 
+    UPROPERTY(EditDefaultsOnly, Category="Spawning")
+    TSubclassOf<ASnakePawn> AISnakePawnBP;
+
     // UI widget classes
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
     TSubclassOf<UUserWidget> MainMenuWidgetClass;
@@ -85,6 +88,10 @@ private:
     // Private game state; use GetCurrentState() to query
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game State", meta=(AllowPrivateAccess="true"))
     EGameState CurrentState = EGameState::MainMenu;
+
+    // track the AI snake pawn so we don’t spawn it twice
+    UPROPERTY()
+    ASnakePawn* SpawnedAISnake = nullptr;
 
     UUserWidget* PauseWidget = nullptr;
 };
