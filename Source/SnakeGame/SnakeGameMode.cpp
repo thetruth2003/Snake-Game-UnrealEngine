@@ -1,12 +1,15 @@
 // SnakeGameMode.cpp
-#include "SnakeGameMode.h"
 
+#include "SnakeGameMode.h"
+#include "Engine/LocalPlayer.h" 
+#include "Definitions.h"              // for SnapToGrid
 #include "SnakeAIController.h"
 #include "SnakeWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerStart.h"
+#include "EngineUtils.h" 
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
@@ -35,40 +38,47 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
     UWorld* W = GetWorld();
     if (!W) return;
 
-    // 1) If Coop or PvP, spawn second human player:
+    // ── 1) Spawn second human player for Coop or PvP ──
     if ((NewType == EGameType::Coop || NewType == EGameType::PvP)
         && GetGameInstance()->GetNumLocalPlayers() < 2)
     {
         UGameplayStatics::CreatePlayer(W, 1, true);
+        UE_LOG(LogTemp, Log, TEXT("Created second local player (ID 1)"));
     }
 
-    // 2) If PvAI or CoopAI, spawn exactly one AI snake:
+    // ── 2) Spawn AI snake for PvAI or CoopAI ──
     if (NewType == EGameType::PvAI || NewType == EGameType::CoopAI)
     {
-        if (!SpawnedAISnake)
+        if (!IsValid(SpawnedAISnake))
         {
-            // find PlayerStart2 or fallback:
+            // Find PlayerStart2 or fallback
             FTransform SpawnT;
             APlayerStart* P2 = nullptr;
             TArray<AActor*> Starts;
             UGameplayStatics::GetAllActorsOfClass(W, APlayerStart::StaticClass(), Starts);
             for (AActor* A : Starts)
             {
-                if (A->ActorHasTag(FName("PlayerStart2")))
+                if (A->ActorHasTag(TEXT("PlayerStart2")))
                 {
                     P2 = Cast<APlayerStart>(A);
                     break;
                 }
             }
-            if (P2) SpawnT = P2->GetActorTransform();
+
+            if (P2)
+            {
+                SpawnT = P2->GetActorTransform();
+            }
             else
             {
-                SpawnT.SetLocation(FVector(400,1000,0));
+                FVector RawFallback(400.f, 1000.f, 0.f);
+                FVector Snapped = SnapToGrid(RawFallback);
+                SpawnT.SetLocation(Snapped);
                 UE_LOG(LogTemp, Warning,
-                       TEXT("PlayerStart2 not found, using fallback location."));
+                       TEXT("PlayerStart2 not found, using fallback at %s."),
+                       *Snapped.ToString());
             }
 
-            // choose which BP to spawn: AI‐specific or reuse P2
             auto& ChosenBP = AISnakePawnBP ? AISnakePawnBP : Player2PawnBP;
             if (ChosenBP)
             {
@@ -76,15 +86,12 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
                 Params.SpawnCollisionHandlingOverride =
                     ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-                // spawn the pawn
                 ASnakePawn* NewAI = W->SpawnActor<ASnakePawn>(ChosenBP, SpawnT, Params);
                 if (NewAI)
                 {
                     SpawnedAISnake = NewAI;
-
-                    // spawn & possess with our AI Controller
-                    ASnakeAIController* AICon =
-                        W->SpawnActor<ASnakeAIController>(ASnakeAIController::StaticClass());
+                    ASnakeAIController* AICon = W->SpawnActor<ASnakeAIController>(
+                        ASnakeAIController::StaticClass());
                     if (AICon)
                     {
                         AICon->Possess(NewAI);
@@ -101,7 +108,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         }
     }
 
-    // 3) Finally, go live
+    // ── 3) Go live ──
     SetGameState(EGameState::Game);
 }
 
@@ -112,13 +119,13 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
     int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
     if (Id == 1 && (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP))
     {
-        // Try to find the PlayerStart with tag "PlayerStart2"
+        // Find PlayerStart2 or fallback
         APlayerStart* TargetStart = nullptr;
-        TArray<AActor*> FoundStarts;
-        UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), FoundStarts);
-        for (AActor* Actor : FoundStarts)
+        TArray<AActor*> Starts;
+        UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), Starts);
+        for (AActor* Actor : Starts)
         {
-            if (Actor->ActorHasTag(FName("PlayerStart2")))
+            if (Actor->ActorHasTag(TEXT("PlayerStart2")))
             {
                 TargetStart = Cast<APlayerStart>(Actor);
                 break;
@@ -132,13 +139,18 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
         }
         else
         {
-            // Fallback to your old location
-            SpawnTransform = FTransform(FRotator::ZeroRotator, FVector(400,1000,0));
-            UE_LOG(LogTemp, Warning, TEXT("PlayerStart2 not found, using fallback location."));
+            FVector RawFallback(400.f, 1000.f, 0.f);
+            FVector Snapped = SnapToGrid(RawFallback);
+            SpawnTransform.SetLocation(Snapped);
+            UE_LOG(LogTemp, Warning,
+                   TEXT("PlayerStart2 not found (PostLogin), using fallback at %s."),
+                   *Snapped.ToString());
         }
 
         FActorSpawnParameters Params;
-        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+        Params.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
         if (Player2PawnBP)
         {
             ASnakePawn* Pawn = GetWorld()->SpawnActor<ASnakePawn>(
@@ -146,7 +158,9 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
             if (Pawn)
             {
                 NewPlayer->Possess(Pawn);
-                UE_LOG(LogTemp, Log, TEXT("Spawned P2 at %s"), *SpawnTransform.GetLocation().ToString());
+                UE_LOG(LogTemp, Log,
+                       TEXT("Spawned P2 at %s"),
+                       *SpawnTransform.GetLocation().ToString());
             }
         }
     }
@@ -155,7 +169,6 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 void ASnakeGameMode::NotifyAppleEaten()
 {
     ApplesEaten++;
-
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
     if (!World) return;
@@ -214,4 +227,37 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 
     if (CurrentWidget) CurrentWidget->AddToViewport();
     if (PauseWidget)   PauseWidget->AddToViewport();
+}
+
+AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller)
+{
+    int32 ControllerId = 0;
+
+    // 1) Cast to APlayerController
+    if (APlayerController* PC = Cast<APlayerController>(Controller))
+    {
+        // 2) Get the ULocalPlayer
+        if (ULocalPlayer* LP = PC->GetLocalPlayer())
+        {
+            // 3) Pull the controller index
+            ControllerId = LP->GetControllerId();
+        }
+    }
+
+    // Decide tag based on ID
+    FName DesiredTag = (ControllerId == 1) ? TEXT("PlayerStart2") : TEXT("PlayerStart1");
+
+    // Find the properly tagged PlayerStart
+    for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+    {
+        if (It->ActorHasTag(DesiredTag))
+        {
+            UE_LOG(LogTemp, Log, TEXT("Spawning Controller %d at %s"), 
+                   ControllerId, *DesiredTag.ToString());
+            return *It;
+        }
+    }
+
+    // Fallback
+    return Super::ChoosePlayerStart_Implementation(Controller);
 }

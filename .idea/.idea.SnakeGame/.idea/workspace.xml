@@ -14,7 +14,8 @@
   <component name="ChangeListManager">
     <list default="true" id="8cd02a94-51cf-463b-9820-56d62fad9c3b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.SnakeGame/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.SnakeGame/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/Definitions.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/Definitions.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -190,7 +191,7 @@
       <workItem from="1745486603633" duration="7113000" />
       <workItem from="1745496536378" duration="6338000" />
       <workItem from="1745507279804" duration="4139000" />
-      <workItem from="1745569217705" duration="2785000" />
+      <workItem from="1745569217705" duration="5092000" />
     </task>
     <servers />
   </component>

@@ -36,6 +36,8 @@ public:
     virtual void BeginPlay() override;
     virtual void PostLogin(APlayerController* NewPlayer) override;
 
+    virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+
     // --- Game type ---
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game Type")
     EGameType CurrentGameType = EGameType::SinglePlayer;
