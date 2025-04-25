@@ -1,5 +1,8 @@
 // SnakeAIController.cpp
 #include "SnakeAIController.h"
+
+#include <queue>
+
 #include "SnakePawn.h"
 #include "SnakeWorld.h"
 #include "SnakeFood.h"
@@ -101,5 +104,75 @@ void ASnakeAIController::Tick(float DeltaTime)
         }
         Snake->SetActorRotation(NewRot);
     }
+}
+
+bool ASnakeAIController::FindPath(
+    const FVector& Start,
+    const FVector& Goal,
+    TArray<FVector>& OutPath
+) const
+{
+    // Simple BFS on a grid. Assumes ASnakeWorld::FloorTileLocations is your walkable set.
+    ASnakeWorld* World = Cast<ASnakeWorld>(
+        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+    );
+    if (!World) return false;
+
+    // Build a quick lookup of valid tiles
+    TSet<FVector> Walkable(World->FloorTileLocations);
+
+    auto Snap = [&](const FVector& V){
+        return FVector(
+            FMath::RoundToFloat(V.X / TileSize) * TileSize,
+            FMath::RoundToFloat(V.Y / TileSize) * TileSize,
+            V.Z
+        );
+    };
+
+    FVector S = Snap(Start), G = Snap(Goal);
+    if (!Walkable.Contains(G)) return false;
+
+    std::queue<FVector> Q;
+    Q.push(S);
+
+    TMap<FVector, FVector> CameFrom;
+    CameFrom.Add(S, S);
+
+    const TArray<FVector> Directions = {
+        FVector(TileSize, 0, 0),
+        FVector(-TileSize, 0, 0),
+        FVector(0, TileSize, 0),
+        FVector(0, -TileSize, 0)
+    };
+
+    while (!Q.empty())
+    {
+        FVector Curr = Q.front(); Q.pop();
+        if (Curr == G) break;
+
+        for (auto& Dir : Directions)
+        {
+            FVector Next = Curr + Dir;
+            if (!Walkable.Contains(Next) || CameFrom.Contains(Next))
+                continue;
+            CameFrom.Add(Next, Curr);
+            Q.push(Next);
+        }
+    }
+
+    // Reconstruct path
+    if (!CameFrom.Contains(G))
+        return false;
+
+    TArray<FVector> ReversePath;
+    for (FVector At = G; At != S; At = CameFrom[At])
+        ReversePath.Add(At);
+    ReversePath.Add(S);
+
+    // Flip it
+    for (int32 i = ReversePath.Num() - 1; i >= 0; --i)
+        OutPath.Add(ReversePath[i]);
+
+    return true;
 }
 

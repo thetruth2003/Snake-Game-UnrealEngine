@@ -73,8 +73,9 @@ public:
 	// Called every frame.
 	virtual void Tick(float DeltaTime) override;
 	const TArray<FVector>& GetFloorTileLocations() const { return FloorTileLocations; }
-
-private:
 	// Array holding locations of floor tiles (read from the level file).
 	TArray<FVector> FloorTileLocations;
+
+private:
+	
 };
