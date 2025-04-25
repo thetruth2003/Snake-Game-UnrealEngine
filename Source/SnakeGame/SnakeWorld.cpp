@@ -219,15 +219,49 @@ void ASnakeWorld::LoadLevelFromTextOld()
 
 void ASnakeWorld::SpawnFood()
 {
-    // Check if a FoodClass is set and there is at least one valid floor tile.
-    if (FoodClass && FloorTileLocations.Num() > 0)
-    {
-        // Pick a random floor tile.
-        int32 RandomIndex = FMath::RandRange(0, FloorTileLocations.Num() - 1);
-        int32 RandomIndex2 = FMath::RandRange(0, FloorTileLocations.Num() - 1);
-        FVector SpawnLocation = GetActorLocation() + FloorTileLocations[RandomIndex];
+    if (!FoodClass || FloorTileLocations.Num() == 0)
+        return;
 
-        // Spawn the food actor (apple) at the chosen location.
-        GetWorld()->SpawnActor<AActor>(FoodClass, SpawnLocation, FRotator::ZeroRotator);
+    // Build a fast lookup of floor tiles
+    TSet<FVector> FloorSet(FloorTileLocations);
+
+    // Collect only those floor tiles whose N/S/E/W neighbors are also floors
+    TArray<FVector> ValidSpawnTiles;
+    FVector Offsets[4] = {
+        FVector(TileSize,  0,       0),
+        FVector(-TileSize, 0,       0),
+        FVector(0,        TileSize, 0),
+        FVector(0,       -TileSize, 0)
+    };
+
+    for (const FVector& Loc : FloorTileLocations)
+    {
+        bool bSurrounded = true;
+        for (auto& Offset : Offsets)
+        {
+            FVector Neigh = SnapToGrid(Loc + Offset);
+            if (!FloorSet.Contains(Neigh))
+            {
+                bSurrounded = false;
+                break;
+            }
+        }
+
+        if (bSurrounded)
+            ValidSpawnTiles.Add(Loc);
     }
+
+    // Fallback to all floors if none fully surrounded
+    const TArray<FVector>& Pool = (ValidSpawnTiles.Num() > 0)
+        ? ValidSpawnTiles
+        : FloorTileLocations;
+
+    // Choose a random tile from the pool
+    int32 Index = FMath::RandRange(0, Pool.Num() - 1);
+    FVector Chosen = Pool[Index];
+
+    // Spawn at world-relative location
+    FVector SpawnLocation = GetActorLocation() + Chosen;
+    GetWorld()->SpawnActor<AActor>(FoodClass, SpawnLocation, FRotator::ZeroRotator);
 }
+
