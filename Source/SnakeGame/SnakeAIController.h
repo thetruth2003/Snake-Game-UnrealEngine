@@ -17,7 +17,7 @@ public:
 
 private:
     bool FindPath(const FVector& Start, const FVector& Goal, TArray<FVector>& OutPath) const;
-    FVector SnapToGrid(const FVector& WorldPos) const;
+    static FVector SnapToGrid(const FVector& WorldPos);
 
     // Track which tile we last ran on
     FVector PrevTilePosition = FVector(FLT_MAX);

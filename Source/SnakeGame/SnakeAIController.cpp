@@ -6,6 +6,7 @@
 #include "SnakePawn.h"
 #include "SnakeWorld.h"
 #include "SnakeFood.h"
+#include "Definitions.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 
@@ -13,14 +14,6 @@ ASnakeAIController::ASnakeAIController()
 {
     PrimaryActorTick.bCanEverTick = true;
 }
-
-FVector ASnakeAIController::SnapToGrid(const FVector& WorldPos) const
-{
-    float X = FMath::RoundToFloat(WorldPos.X / TileSize) * TileSize;
-    float Y = FMath::RoundToFloat(WorldPos.Y / TileSize) * TileSize;
-    return FVector(X, Y, WorldPos.Z);
-}
-
 
 void ASnakeAIController::Tick(float DeltaTime)
 {
@@ -30,80 +23,86 @@ void ASnakeAIController::Tick(float DeltaTime)
     if (!Snake) return;
 
     // Only recalc when we've actually moved into a new tile
-    FVector CurrentTile = Snake->LastTilePosition;
-    if (CurrentTile.Equals(PrevTilePosition, 1e-3f))
+    if (Snake->LastTilePosition.Equals(PrevTilePosition, 1e-3f))
         return;
-    PrevTilePosition = CurrentTile;
+    PrevTilePosition = Snake->LastTilePosition;
 
     // Find & snap the closest apple
     TArray<AActor*> Foods;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASnakeFood::StaticClass(), Foods);
     if (Foods.Num() == 0) return;
+
     AActor* Closest = Foods[0];
-    float Best = FVector::Dist(CurrentTile, Closest->GetActorLocation());
+    float Best = FVector::Dist(PrevTilePosition, Closest->GetActorLocation());
     for (AActor* F : Foods)
     {
-        float D = FVector::Dist(CurrentTile, F->GetActorLocation());
+        float D = FVector::Dist(PrevTilePosition, F->GetActorLocation());
         if (D < Best) { Best = D; Closest = F; }
     }
     FVector Goal = SnapToGrid(Closest->GetActorLocation());
 
-    // Run your BFS pathfinder
+    // Run BFS
     TArray<FVector> Path;
-    if (!FindPath(CurrentTile, Goal, Path) || Path.Num() < 2)
+    if (!FindPath(PrevTilePosition, Goal, Path) || Path.Num() < 2)
         return;
 
-    // Draw debug path (yellow spheres + blue lines)
+    // Debug draw
     for (int32 i = 0; i < Path.Num(); ++i)
     {
-        DrawDebugSphere(GetWorld(), Path[i], TileSize * 0.2f, 8, FColor::Yellow,
-                        false, 0.1f);
+        DrawDebugSphere(GetWorld(), Path[i], TileSize * 0.2f, 8, FColor::Yellow, false, 0.1f);
         if (i < Path.Num() - 1)
-            DrawDebugLine(GetWorld(), Path[i], Path[i+1],
-                          FColor::Blue, false, 0.1f, 0, 5.0f);
+            DrawDebugLine(GetWorld(), Path[i], Path[i+1], FColor::Blue, false, 0.1f, 0, 5.f);
     }
 
-    // Determine the very next step
-    FVector Delta = Path[1] - CurrentTile;
+    // Next step delta
+    FVector Delta = Path[1] - PrevTilePosition;
     ESnakeDirection Dir = ESnakeDirection::None;
     if (FMath::Abs(Delta.X) > FMath::Abs(Delta.Y))
         Dir = (Delta.X > 0) ? ESnakeDirection::Up : ESnakeDirection::Down;
     else
         Dir = (Delta.Y > 0) ? ESnakeDirection::Right : ESnakeDirection::Left;
 
-    // ─── NO U-TURNS: skip if Dir is exact opposite of current ───
+    // NO U-turn: only skip the *set* if it’s opposite, but do NOT abort the rest of the tick
     auto IsOpposite = [](ESnakeDirection A, ESnakeDirection B){
         return (A == ESnakeDirection::Up    && B == ESnakeDirection::Down)  ||
                (A == ESnakeDirection::Down  && B == ESnakeDirection::Up)    ||
                (A == ESnakeDirection::Left  && B == ESnakeDirection::Right) ||
                (A == ESnakeDirection::Right && B == ESnakeDirection::Left);
     };
-    if (Snake->Direction != ESnakeDirection::None && IsOpposite(Snake->Direction, Dir))
+
+    if (!IsOpposite(Snake->Direction, Dir))
+    {
+        // Queue & face
+        if (Snake->Direction != Dir)
+        {
+            Snake->SetNextDirection(Dir);
+            Snake->Direction = Dir;  // ← FORCE immediate movement on this tick
+
+            FRotator NewRot;
+            switch (Dir)
+            {
+                case ESnakeDirection::Up:    NewRot = {0,   0,   0}; break;
+                case ESnakeDirection::Right: NewRot = {0,  90,   0}; break;
+                case ESnakeDirection::Down:  NewRot = {0, 180,   0}; break;
+                case ESnakeDirection::Left:  NewRot = {0, 270,   0}; break;
+                default:                     NewRot = Snake->GetActorRotation(); break;
+            }
+            Snake->SetActorRotation(NewRot);
+        }
+    }
+    else
     {
         UE_LOG(LogTemp, Verbose,
-               TEXT("AI: would U-turn from %s to %s — skipping"),
+               TEXT("AI: skipping U-turn from %s to %s"),
                *UEnum::GetValueAsString(Snake->Direction),
                *UEnum::GetValueAsString(Dir));
-        return;
     }
+}
 
-    // Queue & face that direction
-    if (Snake->Direction != Dir)
-    {
-        Snake->SetNextDirection(Dir);
-
-        // Face immediately
-        FRotator NewRot;
-        switch (Dir)
-        {
-            case ESnakeDirection::Up:    NewRot = FRotator(0,   0, 0); break;
-            case ESnakeDirection::Right: NewRot = FRotator(0,  90, 0); break;
-            case ESnakeDirection::Down:  NewRot = FRotator(0, 180, 0); break;
-            case ESnakeDirection::Left:  NewRot = FRotator(0, 270, 0); break;
-            default:                     NewRot = Snake->GetActorRotation(); break;
-        }
-        Snake->SetActorRotation(NewRot);
-    }
+FVector ASnakeAIController::SnapToGrid(const FVector& WorldPos)
+{
+    // Delegate to our shared helper
+    return ::SnapToGrid(WorldPos);
 }
 
 bool ASnakeAIController::FindPath(
