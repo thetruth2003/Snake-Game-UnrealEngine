@@ -5,6 +5,7 @@
 #include "SnakeWorld.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputSubsystems.h"
+#include "Definitions.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
@@ -44,7 +45,7 @@ void ASnakePawn::BeginPlay()
 	// Snap the snake to the nearest tile center.
 	FVector SnappedLocation = SnapToGrid(GetActorLocation());
 	SetActorLocation(SnappedLocation);
-	LastTilePosition = SnappedLocation; // Ensure the movement system starts on grid.
+	LastTilePosition = SnappedLocation;
 
 	// Bind the overlap event on the collision component.
 	if (CollisionComponent)
@@ -53,25 +54,9 @@ void ASnakePawn::BeginPlay()
 	}
 }
 
-// Helper function that snaps a given location to the nearest tile center.
-// You can use the first version if your floor/wall meshes are centered,
-// or the alternate (commented) version if a half-tile offset is required.
 FVector ASnakePawn::SnapToGrid(const FVector& InLocation)
 {
-	// Without offset:
-	
-	float SnappedX = FMath::RoundToFloat(InLocation.X / TileSize) * TileSize;
-	float SnappedY = FMath::RoundToFloat(InLocation.Y / TileSize) * TileSize;
-	return FVector(SnappedX, SnappedY, InLocation.Z);
-	
-    
-	 /* // Alternatively, with a half-tile offset (if needed):
-	constexpr float HalfTile = TileSize / 2.0f;
-	float SnappedX = FMath::RoundToFloat((InLocation.X - HalfTile) / TileSize) * TileSize + HalfTile;
-	float SnappedY = FMath::RoundToFloat((InLocation.Y - HalfTile) / TileSize) * TileSize + HalfTile;
-	return FVector(SnappedX, SnappedY, InLocation.Z);
-	*/
-	
+	return ::SnapToGrid(InLocation);
 }
 
 // Called every frame.
@@ -246,40 +231,32 @@ void ASnakePawn::MoveSnake(float Distance)
 	MovedTileDistance += Distance;
 }
 
-// Updates snake movement based on elapsed time.
 void ASnakePawn::UpdateMovement(float DeltaTime)
 {
-	// Calculate total distance to move this tick.
 	float DistanceToTravel = Speed * DeltaTime;
 	FVector CurrentPosition = GetActorLocation();
 
-	// Move in continuous steps until the remaining movement is less than needed to complete a tile.
-	while (DistanceToTravel > 0.0f)
+	while (DistanceToTravel > 0.f)
 	{
-		float StepDistance = FMath::Min(DistanceToTravel, TileSize - MovedTileDistance);
-		// Move in the current direction.
-		CurrentPosition += GetDirectionVector() * StepDistance;
+		float Step = FMath::Min(DistanceToTravel, TileSize - MovedTileDistance);
+		CurrentPosition += GetDirectionVector() * Step;
+		MovedTileDistance += Step;
+		DistanceToTravel -= Step;
 
-		// Update the accumulated distance.
-		MovedTileDistance += StepDistance;
-		DistanceToTravel -= StepDistance;
-
-		// If a full tile has been traversed, update state.
-		if (FMath::IsNearlyEqual(MovedTileDistance, TileSize) || MovedTileDistance > TileSize)
+		if (MovedTileDistance >= TileSize - KINDA_SMALL_NUMBER)
 		{
-			// Snap to grid (optional – helps avoid drift).
-			LastTilePosition = CurrentPosition;
-			MovedTileDistance = 0.0f;
+			// Snap exactly to grid, reset counters, update history
+			FVector Snapped = SnapToGrid(CurrentPosition);
+			LastTilePosition = Snapped;
+			CurrentPosition = Snapped;
+			MovedTileDistance = 0.f;
 
-			// Update tail targets based on the completed tile move.
 			UpdateTailTargets(LastTilePosition);
-
-			// Check and update the next queued direction.
 			UpdateDirection();
 		}
 	}
 
-	// Finally set the new position.
+	// Finally commit
 	SetActorLocation(CurrentPosition);
 }
 
