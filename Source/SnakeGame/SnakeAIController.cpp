@@ -9,6 +9,7 @@
 #include "Definitions.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "SnakeTailSegment.h"
 
 ASnakeAIController::ASnakeAIController()
 {
@@ -111,15 +112,34 @@ bool ASnakeAIController::FindPath(
     TArray<FVector>& OutPath
 ) const
 {
-    // Simple BFS on a grid. Assumes ASnakeWorld::FloorTileLocations is your walkable set.
+    // 1) Get the world and its walkable floor tiles
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
     );
     if (!World) return false;
 
-    // Build a quick lookup of valid tiles
     TSet<FVector> Walkable(World->FloorTileLocations);
 
+    // 2) Exclude any tiles occupied by the snake’s tail
+    TSet<FVector> BodyTiles;
+    if (ASnakePawn* SnakePawn = Cast<ASnakePawn>(GetPawn()))
+    {
+        auto SnapGrid = [&](const FVector& V){
+            return FVector(
+                FMath::RoundToFloat(V.X / TileSize) * TileSize,
+                FMath::RoundToFloat(V.Y / TileSize) * TileSize,
+                V.Z
+            );
+        };
+        for (ASnakeTailSegment* Segment : SnakePawn->TailSegments)
+        {
+            BodyTiles.Add(SnapGrid(Segment->GetActorLocation()));
+        }
+        // Allow starting tile even if it overlaps the first segment
+        BodyTiles.Remove(Start);
+    }
+
+    // 3) Snap start/goal to grid and verify goal is reachable
     auto Snap = [&](const FVector& V){
         return FVector(
             FMath::RoundToFloat(V.X / TileSize) * TileSize,
@@ -127,48 +147,53 @@ bool ASnakeAIController::FindPath(
             V.Z
         );
     };
-
     FVector S = Snap(Start), G = Snap(Goal);
     if (!Walkable.Contains(G)) return false;
 
+    // 4) BFS setup
     std::queue<FVector> Q;
     Q.push(S);
-
     TMap<FVector, FVector> CameFrom;
     CameFrom.Add(S, S);
 
-    const TArray<FVector> Directions = {
+    static const TArray<FVector> Directions = {
         FVector(TileSize, 0, 0),
         FVector(-TileSize, 0, 0),
         FVector(0, TileSize, 0),
         FVector(0, -TileSize, 0)
     };
 
+    // 5) BFS loop, skipping any body‐occupied tiles
     while (!Q.empty())
     {
         FVector Curr = Q.front(); Q.pop();
         if (Curr == G) break;
 
-        for (auto& Dir : Directions)
+        for (const FVector& Dir : Directions)
         {
             FVector Next = Curr + Dir;
-            if (!Walkable.Contains(Next) || CameFrom.Contains(Next))
+            if (!Walkable.Contains(Next)
+             || CameFrom.Contains(Next)
+             || BodyTiles.Contains(Next))
+            {
                 continue;
+            }
             CameFrom.Add(Next, Curr);
             Q.push(Next);
         }
     }
 
-    // Reconstruct path
+    // 6) Reconstruct path if goal reached
     if (!CameFrom.Contains(G))
         return false;
 
+    // Build reversed path
     TArray<FVector> ReversePath;
     for (FVector At = G; At != S; At = CameFrom[At])
         ReversePath.Add(At);
     ReversePath.Add(S);
 
-    // Flip it
+    // Flip into OutPath
     for (int32 i = ReversePath.Num() - 1; i >= 0; --i)
         OutPath.Add(ReversePath[i]);
 
