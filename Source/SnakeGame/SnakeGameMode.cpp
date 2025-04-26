@@ -20,7 +20,6 @@ ASnakeGameMode::ASnakeGameMode()
 void ASnakeGameMode::BeginPlay()
 {
     Super::BeginPlay();
-
     SetGameState(CurrentState);
 }
 
