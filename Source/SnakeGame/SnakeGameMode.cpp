@@ -287,3 +287,16 @@ AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller
     // Fallback
     return Super::ChoosePlayerStart_Implementation(Controller);
 }
+
+void ASnakeGameMode::RestartGame()
+{
+    UWorld* W = GetWorld();
+    if (!W) return;
+
+    // Get map name without prefix
+    FString MapName = W->GetMapName();
+    MapName.RemoveFromStart(W->StreamingLevelsPrefix);
+
+    // Open it again
+    UGameplayStatics::OpenLevel(W, FName(*MapName));
+}

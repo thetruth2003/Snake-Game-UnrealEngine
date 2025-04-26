@@ -33,6 +33,9 @@ class SNAKEGAME_API ASnakeGameMode : public AGameModeBase
 public:
     ASnakeGameMode();
 
+    UFUNCTION(BlueprintCallable, Category="Game")
+    void RestartGame();
+
     virtual void BeginPlay() override;
     virtual void PostLogin(APlayerController* NewPlayer) override;
 
