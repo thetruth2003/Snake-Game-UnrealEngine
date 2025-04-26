@@ -22,11 +22,6 @@ void ASnakeGameMode::BeginPlay()
     Super::BeginPlay();
 
     SetGameState(CurrentState);
-    if (MainMenuWidgetClass)
-    {
-        CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
-        CurrentWidget->AddToViewport();
-    }
 }
 
 void ASnakeGameMode::SetGameType(EGameType NewType)
