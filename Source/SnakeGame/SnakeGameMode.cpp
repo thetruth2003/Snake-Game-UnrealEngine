@@ -25,6 +25,38 @@ void ASnakeGameMode::BeginPlay()
 
 void ASnakeGameMode::SetGameType(EGameType NewType)
 {
+    // —— Cleanup extra local player if switching out of any 2-player human mode ——
+    if (GetGameInstance()->GetNumLocalPlayers() > 1
+        && NewType != EGameType::Coop
+        && NewType != EGameType::PvP
+        && NewType != EGameType::CoopAI)
+    {
+        if (ULocalPlayer* Extra = GetGameInstance()->GetLocalPlayers()[1])
+        {
+            GetGameInstance()->RemoveLocalPlayer(Extra);
+            UE_LOG(LogTemp, Log,
+                   TEXT("Removed extra local player when switching to %s"),
+                   *UEnum::GetValueAsString(NewType));
+        }
+    }
+
+    // —— Cleanup AI snake if leaving any AI mode ——
+    if (SpawnedAISnake
+        && NewType != EGameType::PvAI
+        && NewType != EGameType::CoopAI)
+    {
+        if (AController* AICon = SpawnedAISnake->GetController())
+        {
+            AICon->Destroy();
+        }
+        SpawnedAISnake->Destroy();
+        SpawnedAISnake = nullptr;
+        UE_LOG(LogTemp, Log,
+               TEXT("Destroyed AI snake when switching to %s"),
+               *UEnum::GetValueAsString(NewType));
+    }
+
+    // —— Core spawn logic ——  
     CurrentGameType = NewType;
     UE_LOG(LogTemp, Log, TEXT("GameType set to %s"),
            *UEnum::GetValueAsString(NewType));
@@ -32,7 +64,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
     UWorld* W = GetWorld();
     if (!W) return;
 
-    // ── 1) Spawn second human player for Coop or PvP ──
+    // 1) Spawn second human player for Coop or PvP
     if ((NewType == EGameType::Coop || NewType == EGameType::PvP)
         && GetGameInstance()->GetNumLocalPlayers() < 2)
     {
@@ -40,7 +72,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         UE_LOG(LogTemp, Log, TEXT("Created second local player (ID 1)"));
     }
 
-    // ── 2) Spawn AI snake for PvAI or CoopAI ──
+    // 2) Spawn AI snake for PvAI or CoopAI
     if (NewType == EGameType::PvAI || NewType == EGameType::CoopAI)
     {
         if (!IsValid(SpawnedAISnake))
@@ -102,7 +134,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         }
     }
 
-    // ── 3) Go live ──
+    // 3) Go live
     SetGameState(EGameState::Game);
 }
 
