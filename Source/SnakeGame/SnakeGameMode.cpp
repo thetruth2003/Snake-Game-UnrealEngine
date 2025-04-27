@@ -2,7 +2,7 @@
 
 #include "SnakeGameMode.h"
 #include "Engine/LocalPlayer.h" 
-#include "Definitions.h"              // for SnapToGrid
+#include "Definitions.h"
 #include "SnakeAIController.h"
 #include "SnakeWorld.h"
 #include "Blueprint/UserWidget.h"
@@ -14,8 +14,17 @@
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
+    , PauseWidget(nullptr)
+    , InGameWidget(nullptr)
+    , SpawnedAISnake(nullptr)
+    , ApplesToFinish(5)
+    , ApplesEaten(0)
+    , Score(0)
+    , ApplesEatenP1(0)
+    , ApplesEatenP2(0)
+    , CurrentGameType(EGameType::SinglePlayer)
+    , CurrentState(EGameState::MainMenu)
 {
-    CurrentState = EGameState::MainMenu;
 }
 
 void ASnakeGameMode::BeginPlay()
@@ -195,23 +204,37 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
-    // if PvP or PvAI, track two separate eat‐counts
-    if (CurrentGameType == EGameType::PvP
-     || CurrentGameType == EGameType::PvAI)
+    // Track per‐player apples in versus modes
+    if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
     {
         if (ControllerId == 0) ++ApplesEatenP1;
-        else                    ++ApplesEatenP2;
+        else                   ++ApplesEatenP2;
     }
     else
     {
-        ++ApplesEaten;  // single‐player or Coop
+        ++ApplesEaten;  // single‐player or coop
     }
 
-    // --> increment TOTAL score
+    // Always increment cumulative score
     ++Score;
-    
+
+    // Update in‐game HUD if active
+    if (CurrentState == EGameState::Game && InGameWidget)
+    {
+        if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+        {
+            InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+        }
+        else
+        {
+            InGameWidget->SetScore(Score);
+        }
+    }
+
+    // Level progression logic (unchanged)...
     ASnakeWorld* World = Cast<ASnakeWorld>(
-        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
+        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+    );
     if (!World) return;
 
     if (ApplesEaten < ApplesToFinish)
@@ -237,45 +260,81 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 
 void ASnakeGameMode::SetGameState(EGameState NewState)
 {
-    if (CurrentWidget)    { CurrentWidget->RemoveFromParent(); CurrentWidget = nullptr; }
-    if (PauseWidget)      { PauseWidget->RemoveFromParent(); PauseWidget = nullptr; }
-    CurrentState = NewState;
+    // Remove old widgets
+    if (CurrentWidget) { CurrentWidget->RemoveFromParent(); CurrentWidget = nullptr; }
+    if (PauseWidget)   { PauseWidget->RemoveFromParent();   PauseWidget   = nullptr; }
 
+    CurrentState = NewState;
     switch (CurrentState)
     {
-        case EGameState::MainMenu:
-            UGameplayStatics::SetGamePaused(GetWorld(), true);
-            if (MainMenuWidgetClass)
-                CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
-            break;
+    case EGameState::MainMenu:
+        UGameplayStatics::SetGamePaused(GetWorld(), true);
+        if (MainMenuWidgetClass)
+        {
+            CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
+            if (CurrentWidget) CurrentWidget->AddToViewport();
+        }
+        break;
 
-        case EGameState::Game:
-            UGameplayStatics::SetGamePaused(GetWorld(), false);
-            break;
+    case EGameState::Game:
+        UGameplayStatics::SetGamePaused(GetWorld(), false);
+
+        // Spawn the in‐game HUD once
+        if (!InGameWidget && InGameWidgetClass)
+        {
+            InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
+            if (InGameWidget)
+            {
+                InGameWidget->AddToViewport();
+                InGameWidget->SetScore(Score);
+
+                if (ASnakeWorld* W = Cast<ASnakeWorld>(
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+                    ))
+                {
+                    InGameWidget->SetLevel(W->LevelIndex);
+                }
+                else
+                {
+                    InGameWidget->SetLevel(1);
+                }
+
+                if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+                {
+                    InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                }
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error,
+                    TEXT("Failed to create InGameWidget from %s"),
+                    *GetNameSafe(InGameWidgetClass));
+            }
+        }
+        break;
 
     case EGameState::Pause:
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (PauseMenuWidgetClass)
         {
-            auto* UW = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
-            PauseWidget = UW;
-            if (UW)
+            CurrentWidget = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
+            if (CurrentWidget)
             {
-                // set the level as before…
-                ASnakeWorld* W = Cast<ASnakeWorld>(
-                    UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-                );
-                UW->SetLevel(W ? W->LevelIndex : 1);
-
-                // for both PvP and PvAI show two scores:
-                if (CurrentGameType == EGameType::PvP
-                 || CurrentGameType == EGameType::PvAI)
+                CurrentWidget->AddToViewport();
+                if (ASnakeWorld* W = Cast<ASnakeWorld>(
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+                    ))
                 {
-                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    Cast<UMyUserWidget>(CurrentWidget)->SetLevel(W->LevelIndex);
+                }
+                if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+                {
+                    Cast<UMyUserWidget>(CurrentWidget)
+                        ->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 }
                 else
                 {
-                    UW->SetScore(Score);
+                    Cast<UMyUserWidget>(CurrentWidget)->SetScore(Score);
                 }
             }
         }
@@ -285,32 +344,29 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (GameOverWidgetClass)
         {
-            UMyUserWidget* UW = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
-            CurrentWidget = UW;
-            if (UW)
+            CurrentWidget = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
+            if (CurrentWidget)
             {
-                ASnakeWorld* World = Cast<ASnakeWorld>(
-                    UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-                );
-                UW->SetLevel(World ? World->LevelIndex : 1);
-
-                // for both PvP and PvAI show two scores:
-                if (CurrentGameType == EGameType::PvP
-                 || CurrentGameType == EGameType::PvAI)
+                CurrentWidget->AddToViewport();
+                if (ASnakeWorld* W = Cast<ASnakeWorld>(
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+                    ))
                 {
-                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    Cast<UMyUserWidget>(CurrentWidget)->SetLevel(W->LevelIndex);
+                }
+                if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+                {
+                    Cast<UMyUserWidget>(CurrentWidget)
+                        ->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 }
                 else
                 {
-                    UW->SetScore(Score);
+                    Cast<UMyUserWidget>(CurrentWidget)->SetScore(Score);
                 }
             }
         }
         break;
     }
-
-    if (CurrentWidget) CurrentWidget->AddToViewport();
-    if (PauseWidget)   PauseWidget->AddToViewport();
 }
 
 AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller)

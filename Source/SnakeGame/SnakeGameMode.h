@@ -1,8 +1,9 @@
 // SnakeGameMode.h
+
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SnakePawn.h"                // for ASnakePawn
+#include "SnakePawn.h"
 #include "GameFramework/GameModeBase.h"
 #include "SnakeGameMode.generated.h"
 
@@ -25,6 +26,9 @@ enum class EGameType : uint8
     CoopAI          UMETA(DisplayName="Cooperative + AI")
 };
 
+// Forward‐declare the UMG widget class so we can use TSubclassOf<UMyUserWidget>
+class UMyUserWidget;
+
 UCLASS()
 class SNAKEGAME_API ASnakeGameMode : public AGameModeBase
 {
@@ -33,32 +37,15 @@ class SNAKEGAME_API ASnakeGameMode : public AGameModeBase
 public:
     ASnakeGameMode();
 
-    UFUNCTION(BlueprintCallable, Category="Game")
-    void RestartGame();
+    // In‐Game HUD widget blueprint
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
+    TSubclassOf<UMyUserWidget> InGameWidgetClass;
 
-    virtual void BeginPlay() override;
-    virtual void PostLogin(APlayerController* NewPlayer) override;
+    // Live instance of the in‐game HUD
+    UPROPERTY()
+    UMyUserWidget* InGameWidget = nullptr;
 
-    virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
-
-    // --- Game type ---
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game Type")
-    EGameType CurrentGameType = EGameType::SinglePlayer;
-
-    UFUNCTION(BlueprintCallable, Category="Game Type")
-    void SetGameType(EGameType NewType);
-
-    // ** Two separate pawn Blueprints for each player **
-    UPROPERTY(EditDefaultsOnly, Category="Spawning")
-    TSubclassOf<ASnakePawn> Player1PawnBP;
-
-    UPROPERTY(EditDefaultsOnly, Category="Spawning")
-    TSubclassOf<ASnakePawn> Player2PawnBP;
-
-    UPROPERTY(EditDefaultsOnly, Category="Spawning")
-    TSubclassOf<ASnakePawn> AISnakePawnBP;
-
-    // UI widget classes
+    // Main menu, pause and game‐over widgets
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
     TSubclassOf<UUserWidget> MainMenuWidgetClass;
 
@@ -68,18 +55,29 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
     TSubclassOf<UUserWidget> GameOverWidgetClass;
 
-    // Level progression
+    // Two‐player and AI spawning
+    UPROPERTY(EditDefaultsOnly, Category="Spawning")
+    TSubclassOf<ASnakePawn> Player1PawnBP;
+
+    UPROPERTY(EditDefaultsOnly, Category="Spawning")
+    TSubclassOf<ASnakePawn> Player2PawnBP;
+
+    UPROPERTY(EditDefaultsOnly, Category="Spawning")
+    TSubclassOf<ASnakePawn> AISnakePawnBP;
+
+    // Level & progression
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level")
     int32 ApplesToFinish = 5;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Level")
     int32 ApplesEaten = 0;
 
-    UFUNCTION()
-    void NotifyAppleEaten(int32 ControllerId);
-
+    // Cumulative score
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game")
     int32 Score = 0;
+
+    UFUNCTION()
+    void NotifyAppleEaten(int32 ControllerId);
 
     // Game state machine
     UFUNCTION(BlueprintCallable, Category="Game State")
@@ -88,21 +86,36 @@ public:
     UFUNCTION(BlueprintCallable, Category="Game State")
     EGameState GetCurrentState() const { return CurrentState; }
 
+    // Switch between Single, PvP, Coop, etc.
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game Type")
+    EGameType CurrentGameType = EGameType::SinglePlayer;
+
+    UFUNCTION(BlueprintCallable, Category="Game Type")
+    void SetGameType(EGameType NewType);
+
+    virtual void BeginPlay() override;
+    virtual void PostLogin(APlayerController* NewPlayer) override;
+    virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+
+    UFUNCTION(BlueprintCallable, Category="Game")
+    void RestartGame();
+
 protected:
     UPROPERTY()
     UUserWidget* CurrentWidget;
 
+    UPROPERTY()
+    UUserWidget* PauseWidget;
+
 private:
-    // Private game state; use GetCurrentState() to query
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game State", meta=(AllowPrivateAccess="true"))
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
     EGameState CurrentState = EGameState::MainMenu;
 
-    // track the AI snake pawn so we don’t spawn it twice
+    // Track AI snake pawn
     UPROPERTY()
     ASnakePawn* SpawnedAISnake = nullptr;
 
-    UUserWidget* PauseWidget = nullptr;
-
+    // Per‐player apples for versus modes
     int32 ApplesEatenP1 = 0;
     int32 ApplesEatenP2 = 0;
 };

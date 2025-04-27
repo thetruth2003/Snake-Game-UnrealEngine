@@ -5,27 +5,32 @@
 #include "Components/TextBlock.h"
 #include "MyUserWidget.generated.h"
 
+/**
+ *  UI widget for displaying Score, Level, and (optionally) Versus scores.
+ */
 UCLASS()
 class SNAKEGAME_API UMyUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	// Bind these to TextBlock widgets in your UMG designer
-	UPROPERTY(meta = (BindWidget))
+	// Bind to a TextBlock named 'ScoreText' in the UMG Designer
+	UPROPERTY(meta=(BindWidget))
 	UTextBlock* ScoreText;
 
-	UPROPERTY(meta = (BindWidget))
+	// Bind to a TextBlock named 'LevelText'
+	UPROPERTY(meta=(BindWidget))
 	UTextBlock* LevelText;
 
-	// Optional: only present in your VsP widget layouts
-	UPROPERTY(meta = (BindWidget, OptionalWidget))
+	// Optional: Bind to 'ScoreP1Text' for player 1 in Versus modes
+	UPROPERTY(meta=(BindWidget, OptionalWidget))
 	UTextBlock* ScoreP1Text;
 
-	UPROPERTY(meta = (BindWidget, OptionalWidget))
+	// Optional: Bind to 'ScoreP2Text' for player 2/AI in Versus modes
+	UPROPERTY(meta=(BindWidget, OptionalWidget))
 	UTextBlock* ScoreP2Text;
 
-	// Setter functions to call from C++
+public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void SetScore(int32 InScore);
 
