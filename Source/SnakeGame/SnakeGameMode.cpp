@@ -10,6 +10,7 @@
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h" 
+#include "MyUserWidget.h"
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
@@ -192,9 +193,17 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
     }
 }
 
-void ASnakeGameMode::NotifyAppleEaten()
+void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
-    ApplesEaten++;
+    if (CurrentGameType == EGameType::PvP)
+    {
+        if (ControllerId == 0) ++ApplesEatenP1;
+        else if (ControllerId == 1) ++ApplesEatenP2;
+    }
+    else
+    {
+        ++ApplesEaten; 
+    }
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
     if (!World) return;
@@ -238,17 +247,49 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             UGameplayStatics::SetGamePaused(GetWorld(), false);
             break;
 
-        case EGameState::Pause:
-            UGameplayStatics::SetGamePaused(GetWorld(), true);
-            if (PauseMenuWidgetClass)
-                PauseWidget = CreateWidget<UUserWidget>(GetWorld(), PauseMenuWidgetClass);
-            break;
+    case EGameState::Pause:
+        UGameplayStatics::SetGamePaused(GetWorld(), true);
+        if (PauseMenuWidgetClass)
+        {
+            // Create as our subclass
+            UMyUserWidget* UW = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
+            PauseWidget = UW;
+            if (UW)
+            {
+                // Level comes from your world actor
+                ASnakeWorld* World = Cast<ASnakeWorld>(
+                    UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+                );
+                UW->SetLevel(World ? World->LevelIndex : 1);
 
-        case EGameState::Outro:
-            UGameplayStatics::SetGamePaused(GetWorld(), true);
-            if (GameOverWidgetClass)
-                CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), GameOverWidgetClass);
-            break;
+                if (CurrentGameType == EGameType::PvP)
+                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                else
+                    UW->SetScore(ApplesEaten);
+            }
+        }
+        break;
+
+    case EGameState::Outro:
+        UGameplayStatics::SetGamePaused(GetWorld(), true);
+        if (GameOverWidgetClass)
+        {
+            UMyUserWidget* UW = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
+            CurrentWidget = UW;
+            if (UW)
+            {
+                ASnakeWorld* World = Cast<ASnakeWorld>(
+                    UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
+                );
+                UW->SetLevel(World ? World->LevelIndex : 1);
+
+                if (CurrentGameType == EGameType::PvP)
+                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                else
+                    UW->SetScore(ApplesEaten);
+            }
+        }
+        break;
     }
 
     if (CurrentWidget) CurrentWidget->AddToViewport();

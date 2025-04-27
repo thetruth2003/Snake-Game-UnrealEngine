@@ -76,7 +76,7 @@ public:
     int32 ApplesEaten = 0;
 
     UFUNCTION()
-    void NotifyAppleEaten();
+    void NotifyAppleEaten(int32 ControllerId);
 
     // Game state machine
     UFUNCTION(BlueprintCallable, Category="Game State")
@@ -99,4 +99,7 @@ private:
     ASnakePawn* SpawnedAISnake = nullptr;
 
     UUserWidget* PauseWidget = nullptr;
+
+    int32 ApplesEatenP1 = 0;
+    int32 ApplesEatenP2 = 0;
 };

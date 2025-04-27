@@ -117,12 +117,13 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		OtherActor->Destroy();
 
 		// Notify the GameMode instead of directly spawning
-		ASnakeGameMode* GM = Cast<ASnakeGameMode>(
-			UGameplayStatics::GetGameMode(GetWorld())
-		);
+		ASnakeGameMode* GM = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 		if (GM)
 		{
-			GM->NotifyAppleEaten();
+			int32 ControllerId = 0;
+			if (APlayerController* PC = Cast<APlayerController>(GetController()))
+				ControllerId = PC->GetLocalPlayer()->GetControllerId();
+			GM->NotifyAppleEaten(ControllerId);
 		}
 		return;
 	}
