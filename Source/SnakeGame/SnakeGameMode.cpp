@@ -195,14 +195,16 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
-    if (CurrentGameType == EGameType::PvP)
+    // if PvP or PvAI, track two separate eat‐counts
+    if (CurrentGameType == EGameType::PvP
+     || CurrentGameType == EGameType::PvAI)
     {
         if (ControllerId == 0) ++ApplesEatenP1;
-        else if (ControllerId == 1) ++ApplesEatenP2;
+        else                    ++ApplesEatenP2;
     }
     else
     {
-        ++ApplesEaten; 
+        ++ApplesEaten;  // single‐player or Coop
     }
 
     // --> increment TOTAL score
@@ -255,21 +257,26 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (PauseMenuWidgetClass)
         {
-            // Create as our subclass
-            UMyUserWidget* UW = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
+            auto* UW = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
             PauseWidget = UW;
             if (UW)
             {
-                // Level comes from your world actor
-                ASnakeWorld* World = Cast<ASnakeWorld>(
+                // set the level as before…
+                ASnakeWorld* W = Cast<ASnakeWorld>(
                     UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
                 );
-                UW->SetLevel(World ? World->LevelIndex : 1);
+                UW->SetLevel(W ? W->LevelIndex : 1);
 
-                if (CurrentGameType == EGameType::PvP)
+                // for both PvP and PvAI show two scores:
+                if (CurrentGameType == EGameType::PvP
+                 || CurrentGameType == EGameType::PvAI)
+                {
                     UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                }
                 else
+                {
                     UW->SetScore(Score);
+                }
             }
         }
         break;
@@ -287,10 +294,16 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 );
                 UW->SetLevel(World ? World->LevelIndex : 1);
 
-                if (CurrentGameType == EGameType::PvP)
+                // for both PvP and PvAI show two scores:
+                if (CurrentGameType == EGameType::PvP
+                 || CurrentGameType == EGameType::PvAI)
+                {
                     UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                }
                 else
+                {
                     UW->SetScore(Score);
+                }
             }
         }
         break;

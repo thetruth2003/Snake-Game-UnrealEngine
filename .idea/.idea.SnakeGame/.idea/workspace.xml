@@ -14,11 +14,10 @@
   <component name="ChangeListManager">
     <list default="true" id="8cd02a94-51cf-463b-9820-56d62fad9c3b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.SnakeGame/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.SnakeGame/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Blueprints/Widgets/WBP_GameOver.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Blueprints/Widgets/WBP_GameOver.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Blueprints/Widgets/WBP_MainMenu.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Blueprints/Widgets/WBP_MainMenu.uasset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Source/SnakeGame/MyUserWidget.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/MyUserWidget.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/MyUserWidget.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/MyUserWidget.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/SnakeGameMode.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/SnakeGame/SnakePawn.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/SnakeGame/SnakePawn.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -196,7 +195,8 @@
       <workItem from="1745507279804" duration="4139000" />
       <workItem from="1745569217705" duration="7717000" />
       <workItem from="1745690491422" duration="8760000" />
-      <workItem from="1745743487654" duration="2166000" />
+      <workItem from="1745743487654" duration="5070000" />
+      <workItem from="1745783418336" duration="1791000" />
     </task>
     <servers />
   </component>

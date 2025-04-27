@@ -15,7 +15,14 @@ void UMyUserWidget::SetLevel(int32 InLevel)
 void UMyUserWidget::SetPlayerScores(int32 InP1Score, int32 InP2Score)
 {
 	if (ScoreP1Text)
-		ScoreP1Text->SetText(FText::AsNumber(InP1Score));
+	{
+		FString P1Str = FString::Printf(TEXT("P1: %d"), InP1Score);
+		ScoreP1Text->SetText(FText::FromString(P1Str));
+	}
+
 	if (ScoreP2Text)
-		ScoreP2Text->SetText(FText::AsNumber(InP2Score));
+	{
+		FString P2Str = FString::Printf(TEXT("P2: %d"), InP2Score);
+		ScoreP2Text->SetText(FText::FromString(P2Str));
+	}
 }

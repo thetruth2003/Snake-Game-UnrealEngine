@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputSubsystems.h"
 #include "Definitions.h"
+#include "SnakeAIController.h"
 
 // Sets default values
 ASnakePawn::ASnakePawn()
@@ -121,11 +122,21 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		if (GM)
 		{
 			int32 ControllerId = 0;
-			if (APlayerController* PC = Cast<APlayerController>(GetController()))
+			AController* Con = GetController();
+
+			if (APlayerController* PC = Cast<APlayerController>(Con))
+			{
+				// human player
 				ControllerId = PC->GetLocalPlayer()->GetControllerId();
+			}
+			else if (Cast<ASnakeAIController>(Con))
+			{
+				// AI always counts as player 2
+				ControllerId = 1;
+			}
+
 			GM->NotifyAppleEaten(ControllerId);
 		}
-		return;
 	}
 
 	// Collision with Tail Segment: Check the collision flag.
