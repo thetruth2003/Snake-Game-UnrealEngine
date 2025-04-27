@@ -78,6 +78,9 @@ public:
     UFUNCTION()
     void NotifyAppleEaten(int32 ControllerId);
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game")
+    int32 Score = 0;
+
     // Game state machine
     UFUNCTION(BlueprintCallable, Category="Game State")
     void SetGameState(EGameState NewState);

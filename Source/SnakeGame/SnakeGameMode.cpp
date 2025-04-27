@@ -204,6 +204,10 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
     {
         ++ApplesEaten; 
     }
+
+    // --> increment TOTAL score
+    ++Score;
+    
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass()));
     if (!World) return;
@@ -265,7 +269,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 if (CurrentGameType == EGameType::PvP)
                     UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 else
-                    UW->SetScore(ApplesEaten);
+                    UW->SetScore(Score);
             }
         }
         break;
@@ -286,7 +290,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 if (CurrentGameType == EGameType::PvP)
                     UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 else
-                    UW->SetScore(ApplesEaten);
+                    UW->SetScore(Score);
             }
         }
         break;
