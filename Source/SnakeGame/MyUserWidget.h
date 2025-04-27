@@ -6,7 +6,7 @@
 #include "MyUserWidget.generated.h"
 
 /**
- *  UI widget for displaying Score, Level, and (optionally) Versus scores.
+ * UI widget for displaying Score, Level, and (optionally) Versus scores.
  */
 UCLASS()
 class SNAKEGAME_API UMyUserWidget : public UUserWidget
@@ -29,8 +29,7 @@ public:
 	// Optional: Bind to 'ScoreP2Text' for player 2/AI in Versus modes
 	UPROPERTY(meta=(BindWidget, OptionalWidget))
 	UTextBlock* ScoreP2Text;
-
-public:
+	
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void SetScore(int32 InScore);
 

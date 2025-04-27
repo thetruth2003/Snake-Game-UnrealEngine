@@ -6,8 +6,7 @@ void UMyUserWidget::SetScore(int32 InScore)
 {
 	if (!IsValid(this) || !ScoreText)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UMyUserWidget::SetScore called but ScoreText is invalid."));
+		UE_LOG(LogTemp, Warning, TEXT("UMyUserWidget::SetScore called but ScoreText is invalid."));
 		return;
 	}
 	ScoreText->SetText(FText::AsNumber(InScore));
@@ -17,8 +16,7 @@ void UMyUserWidget::SetLevel(int32 InLevel)
 {
 	if (!IsValid(this) || !LevelText)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UMyUserWidget::SetLevel called but LevelText is invalid."));
+		UE_LOG(LogTemp, Warning, TEXT("UMyUserWidget::SetLevel called but LevelText is invalid."));
 		return;
 	}
 	LevelText->SetText(FText::AsNumber(InLevel));
@@ -28,8 +26,7 @@ void UMyUserWidget::SetPlayerScores(int32 InP1Score, int32 InP2Score)
 {
 	if (!IsValid(this))
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UMyUserWidget::SetPlayerScores called but widget is invalid."));
+		UE_LOG(LogTemp, Warning, TEXT("UMyUserWidget::SetPlayerScores called but widget is invalid."));
 		return;
 	}
 
@@ -42,8 +39,7 @@ void UMyUserWidget::SetPlayerScores(int32 InP1Score, int32 InP2Score)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UMyUserWidget::SetPlayerScores: ScoreP1Text is null!"));
+		UE_LOG(LogTemp, Warning, TEXT("UMyUserWidget::SetPlayerScores: ScoreP1Text is null!"));
 	}
 
 	if (ScoreP2Text)
@@ -55,7 +51,6 @@ void UMyUserWidget::SetPlayerScores(int32 InP1Score, int32 InP2Score)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UMyUserWidget::SetPlayerScores: ScoreP2Text is null!"));
+		UE_LOG(LogTemp, Warning, TEXT("UMyUserWidget::SetPlayerScores: ScoreP2Text is null!"));
 	}
 }

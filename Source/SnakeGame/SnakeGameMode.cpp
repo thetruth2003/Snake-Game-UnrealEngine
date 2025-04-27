@@ -1,16 +1,12 @@
-// SnakeGameMode.cpp
-
 #include "SnakeGameMode.h"
-#include "Engine/LocalPlayer.h" 
-#include "Definitions.h"
-#include "SnakeAIController.h"
-#include "SnakeWorld.h"
+#include "MyUserWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "SnakeWorld.h"
+#include "SnakeAIController.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerStart.h"
-#include "EngineUtils.h" 
-#include "MyUserWidget.h"
+#include "EngineUtils.h"
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
@@ -204,7 +200,6 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
-    // Track per‐player apples in versus modes
     if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
     {
         if (ControllerId == 0) ++ApplesEatenP1;
@@ -212,13 +207,11 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
     }
     else
     {
-        ++ApplesEaten;  // single‐player or coop
+        ++ApplesEaten;
     }
 
-    // Always increment cumulative score
     ++Score;
 
-    // Update in‐game HUD if active
     if (CurrentState == EGameState::Game && InGameWidget)
     {
         if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
@@ -231,7 +224,6 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
         }
     }
 
-    // Level progression logic (unchanged)...
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
     );
@@ -260,7 +252,6 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 
 void ASnakeGameMode::SetGameState(EGameState NewState)
 {
-    // Remove old widgets
     if (CurrentWidget) { CurrentWidget->RemoveFromParent(); CurrentWidget = nullptr; }
     if (PauseWidget)   { PauseWidget->RemoveFromParent();   PauseWidget   = nullptr; }
 
@@ -278,19 +269,29 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 
     case EGameState::Game:
         UGameplayStatics::SetGamePaused(GetWorld(), false);
-
-        // Spawn the in‐game HUD once
         if (!InGameWidget && InGameWidgetClass)
         {
             InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
             if (InGameWidget)
             {
                 InGameWidget->AddToViewport();
-                InGameWidget->SetScore(Score);
-
+                // Show/hide score fields for PvP vs single
+                if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+                {
+                    InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
+                    InGameWidget->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
+                    InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
+                    InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                }
+                else
+                {
+                    InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Visible);
+                    InGameWidget->ScoreP1Text->SetVisibility(ESlateVisibility::Collapsed);
+                    InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
+                    InGameWidget->SetScore(Score);
+                }
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
-                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-                    ))
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
                     InGameWidget->SetLevel(W->LevelIndex);
                 }
@@ -298,17 +299,10 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 {
                     InGameWidget->SetLevel(1);
                 }
-
-                if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
-                {
-                    InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
-                }
             }
             else
             {
-                UE_LOG(LogTemp, Error,
-                    TEXT("Failed to create InGameWidget from %s"),
-                    *GetNameSafe(InGameWidgetClass));
+                UE_LOG(LogTemp, Error, TEXT("Failed to create InGameWidget from %s"), *GetNameSafe(InGameWidgetClass));
             }
         }
         break;
@@ -317,24 +311,29 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (PauseMenuWidgetClass)
         {
-            CurrentWidget = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
-            if (CurrentWidget)
+            auto* UW = CreateWidget<UMyUserWidget>(GetWorld(), PauseMenuWidgetClass);
+            PauseWidget = UW;
+            if (UW)
             {
-                CurrentWidget->AddToViewport();
+                UW->AddToViewport();
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
-                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-                    ))
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)->SetLevel(W->LevelIndex);
+                    UW->SetLevel(W->LevelIndex);
                 }
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)
-                        ->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    UW->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
+                    UW->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
+                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 }
                 else
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)->SetScore(Score);
+                    UW->ScoreText  ->SetVisibility(ESlateVisibility::Visible);
+                    UW->ScoreP1Text->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->SetScore(Score);
                 }
             }
         }
@@ -344,24 +343,29 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (GameOverWidgetClass)
         {
-            CurrentWidget = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
-            if (CurrentWidget)
+            auto* UW = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
+            CurrentWidget = UW;
+            if (UW)
             {
-                CurrentWidget->AddToViewport();
+                UW->AddToViewport();
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
-                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
-                    ))
+                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)->SetLevel(W->LevelIndex);
+                    UW->SetLevel(W->LevelIndex);
                 }
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)
-                        ->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    UW->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
+                    UW->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
+                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
                 }
                 else
                 {
-                    Cast<UMyUserWidget>(CurrentWidget)->SetScore(Score);
+                    UW->ScoreText  ->SetVisibility(ESlateVisibility::Visible);
+                    UW->ScoreP1Text->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
+                    UW->SetScore(Score);
                 }
             }
         }
