@@ -1,4 +1,3 @@
-// SnakePlayerController.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,8 +16,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* P2Mapping;
-
-	// SnakePlayerController.h
+	
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* SnakeMapping;
 

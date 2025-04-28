@@ -1,4 +1,3 @@
-// SnakeAIController.cpp
 #include "SnakeAIController.h"
 
 #include <queue>
@@ -77,7 +76,7 @@ void ASnakeAIController::Tick(float DeltaTime)
         if (Snake->Direction != Dir)
         {
             Snake->SetNextDirection(Dir);
-            Snake->Direction = Dir;  // ← FORCE immediate movement on this tick
+            Snake->Direction = Dir;
 
             FRotator NewRot;
             switch (Dir)
@@ -102,7 +101,6 @@ void ASnakeAIController::Tick(float DeltaTime)
 
 FVector ASnakeAIController::SnapToGrid(const FVector& WorldPos)
 {
-    // Delegate to our shared helper
     return ::SnapToGrid(WorldPos);
 }
 

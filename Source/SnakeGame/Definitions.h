@@ -1,4 +1,3 @@
-// Definitions.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,7 +13,6 @@ enum class ESnakeDirection : uint8
 	None  = 255
 };
 
-// Tile size in world units
 constexpr float TileSize = 100.0f;
 
 // Unified helper to snap any world position to the nearest grid center

@@ -16,8 +16,8 @@ ASnakeGameMode::ASnakeGameMode()
     , ApplesToFinish(5)
     , ApplesEaten(0)
     , Score(0)
-    , ApplesEatenP1(0)
-    , ApplesEatenP2(0)
+    , LevelApplesP1(0)
+    , LevelApplesP2(0)
     , CurrentGameType(EGameType::SinglePlayer)
     , CurrentState(EGameState::MainMenu)
 {
@@ -200,23 +200,35 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
+    // 1) Update per‐level and total counters
     if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
     {
-        if (ControllerId == 0) ++ApplesEatenP1;
-        else                   ++ApplesEatenP2;
+        if (ControllerId == 0)
+        {
+            ++LevelApplesP1;
+            ++TotalApplesP1;
+        }
+        else
+        {
+            ++LevelApplesP2;
+            ++TotalApplesP2;
+        }
     }
     else
     {
         ++ApplesEaten;
     }
 
+    // 2) Always bump the global score if you still use it
     ++Score;
 
+    // 3) Update the UI
     if (CurrentState == EGameState::Game && InGameWidget)
     {
         if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
         {
-            InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+            // Show the cumulative score
+            InGameWidget->SetPlayerScores(TotalApplesP1, TotalApplesP2);
         }
         else
         {
@@ -224,31 +236,50 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
         }
     }
 
+    // 4) Grab the world
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
     );
     if (!World) return;
 
-    if (ApplesEaten < ApplesToFinish)
+    // 5) How many apples this level?
+    int32 EatenThisLevel = (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
+                           ? (LevelApplesP1 + LevelApplesP2)
+                           : ApplesEaten;
+
+    // 6) Spawn next apple or advance level
+    if (EatenThisLevel < ApplesToFinish)
     {
         World->SpawnFood();
     }
     else
     {
+        // Pause before switching
         SetGameState(EGameState::Pause);
+
+        // Next level
         int32 Next = World->LevelIndex + 1;
         if (!World->DoesLevelExist(Next))
         {
             SetGameState(EGameState::Outro);
             return;
         }
+
+        // Advance the level
         World->LevelIndex = Next;
         World->LoadLevelFromText();
         World->SpawnFood();
-        ApplesEaten = 0;
+
+        // 7) Reset only the per‐level counters
+        LevelApplesP1 = 0;
+        LevelApplesP2 = 0;
+        ApplesEaten   = 0;
+
+        // 8) Resume play
         SetGameState(EGameState::Game);
     }
 }
+
 
 void ASnakeGameMode::SetGameState(EGameState NewState)
 {
@@ -275,13 +306,13 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             if (InGameWidget)
             {
                 InGameWidget->AddToViewport();
-                // Show/hide score fields for PvP vs single
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
                     InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
                     InGameWidget->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
                     InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
-                    InGameWidget->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    
+                    InGameWidget->SetPlayerScores(TotalApplesP1, TotalApplesP2);
                 }
                 else
                 {
@@ -290,6 +321,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                     InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
                     InGameWidget->SetScore(Score);
                 }
+                
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
                         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
@@ -326,7 +358,8 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                     UW->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
                     UW->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
                     UW->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
-                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    
+                    UW->SetPlayerScores(TotalApplesP1, TotalApplesP2);
                 }
                 else
                 {
@@ -358,7 +391,8 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                     UW->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
                     UW->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
                     UW->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
-                    UW->SetPlayerScores(ApplesEatenP1, ApplesEatenP2);
+                    
+                    UW->SetPlayerScores(TotalApplesP1, TotalApplesP2);
                 }
                 else
                 {
@@ -372,6 +406,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         break;
     }
 }
+
 
 AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller)
 {

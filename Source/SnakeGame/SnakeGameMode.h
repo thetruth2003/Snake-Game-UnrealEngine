@@ -103,6 +103,11 @@ private:
     UPROPERTY()
     ASnakePawn* SpawnedAISnake = nullptr;
 
-    int32 ApplesEatenP1 = 0;
-    int32 ApplesEatenP2 = 0;
+    // Per‐level PvP counters (reset each level)
+    int32 LevelApplesP1 = 0;
+    int32 LevelApplesP2 = 0;
+
+    // Total PvP counters (never reset)
+    int32 TotalApplesP1 = 0;
+    int32 TotalApplesP2 = 0;
 };
