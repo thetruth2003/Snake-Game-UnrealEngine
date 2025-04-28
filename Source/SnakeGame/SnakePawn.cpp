@@ -387,10 +387,12 @@ void ASnakePawn::GrowTail()
 	if (NewSegment)
 	{
 		// 1) Copy the head’s material (slot 0) onto the new tail segment
-		UMaterialInterface* HeadMat = CollisionComponent->GetMaterial(0);
-		if (HeadMat)
+		if (UStaticMeshComponent* HeadMesh = FindComponentByClass<UStaticMeshComponent>())
 		{
-			NewSegment->MeshComponent->SetMaterial(0, HeadMat);
+			if (UMaterialInterface* HeadMat = HeadMesh->GetMaterial(0))
+			{
+				NewSegment->MeshComponent->SetMaterial(0, HeadMat);
+			}
 		}
 
 		// 2) Preserve your existing collision setup
