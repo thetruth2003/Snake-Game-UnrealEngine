@@ -2,6 +2,8 @@
 #include "SnakeTailSegment.h"
 #include "SnakeFood.h"
 #include "SnakeGameMode.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "SnakeWorld.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputSubsystems.h"
@@ -361,7 +363,6 @@ void ASnakePawn::SetNextDirection(ESnakeDirection InDirection)
 	DirectionQueue.Add(InDirection);
 }
 
-// Spawns a new tail segment when food is eaten.
 void ASnakePawn::GrowTail()
 {
 	if (!GetWorld())
@@ -370,31 +371,47 @@ void ASnakePawn::GrowTail()
 	}
 
 	FActorSpawnParameters SpawnParams;
-	UClass* SpawnClass = TailSegmentClass.Get() ? TailSegmentClass.Get() : ASnakeTailSegment::StaticClass();
+	SpawnParams.Owner = this;  
+	UClass* SpawnClass = TailSegmentClass.Get() ? TailSegmentClass.Get()
+												: ASnakeTailSegment::StaticClass();
 
-	ASnakeTailSegment* NewSegment = GetWorld()->SpawnActor<ASnakeTailSegment>(SpawnClass, LastTilePosition, FRotator::ZeroRotator, SpawnParams);
+	ASnakeTailSegment* NewSegment = GetWorld()->SpawnActor<ASnakeTailSegment>(
+		SpawnClass,
+		LastTilePosition,
+		FRotator::ZeroRotator,
+		SpawnParams
+	);
+
+	
+
 	if (NewSegment)
 	{
-		// Ensure collision is disabled and the flag is false.
+		// 1) Copy the head’s material (slot 0) onto the new tail segment
+		UMaterialInterface* HeadMat = CollisionComponent->GetMaterial(0);
+		if (HeadMat)
+		{
+			NewSegment->MeshComponent->SetMaterial(0, HeadMat);
+		}
+
+		// 2) Preserve your existing collision setup
 		NewSegment->MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		NewSegment->bCanCollide = false;
 
-		// Schedule re-enabling collision after a delay (0.3 seconds in this example).
+		// 3) Schedule re-enable collision after a brief delay
 		FTimerHandle TimerHandle;
 		FTimerDelegate TimerDel;
 		TimerDel.BindLambda([NewSegment]()
 		{
 			if (NewSegment)
 			{
-				// Re-enable collision to QueryOnly.
 				NewSegment->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 				NewSegment->bCanCollide = true;
 			}
 		});
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDel, 0.3f, false);
 
+		// 4) Add to your tail arrays
 		TailSegments.Add(NewSegment);
-		// Also add a target position entry for the new tail segment.
 		TailTargetPositions.Add(LastTilePosition);
 
 		UE_LOG(LogTemp, Warning, TEXT("Tail grown. Total segments: %d"), TailSegments.Num());
