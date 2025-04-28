@@ -300,18 +300,20 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 
     case EGameState::Game:
         UGameplayStatics::SetGamePaused(GetWorld(), false);
+
+        // 1) Create the widget if this is the first time
         if (!InGameWidget && InGameWidgetClass)
         {
             InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
             if (InGameWidget)
             {
                 InGameWidget->AddToViewport();
+                // score visibility & initial score setup...
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
                     InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
                     InGameWidget->ScoreP1Text->SetVisibility(ESlateVisibility::Visible);
                     InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Visible);
-                    
                     InGameWidget->SetPlayerScores(TotalApplesP1, TotalApplesP2);
                 }
                 else
@@ -321,23 +323,28 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                     InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
                     InGameWidget->SetScore(Score);
                 }
-                
-                if (ASnakeWorld* W = Cast<ASnakeWorld>(
-                        UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
-                {
-                    InGameWidget->SetLevel(W->LevelIndex);
-                }
-                else
-                {
-                    InGameWidget->SetLevel(1);
-                }
             }
             else
             {
                 UE_LOG(LogTemp, Error, TEXT("Failed to create InGameWidget from %s"), *GetNameSafe(InGameWidgetClass));
             }
         }
+
+        // 2) Always update the level display
+        if (InGameWidget)
+        {
+            if (ASnakeWorld* W = Cast<ASnakeWorld>(
+                    UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
+            {
+                InGameWidget->SetLevel(W->LevelIndex);
+            }
+            else
+            {
+                InGameWidget->SetLevel(1);
+            }
+        }
         break;
+
 
     case EGameState::Pause:
         UGameplayStatics::SetGamePaused(GetWorld(), true);
