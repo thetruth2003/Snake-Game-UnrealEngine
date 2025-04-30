@@ -4,6 +4,7 @@
 #include "Definitions.h"
 #include "GameFramework/Pawn.h"
 #include "Components/SphereComponent.h"
+#include "Particles/ParticleSystem.h"     
 #include "InputMappingContext.h" 
 #include "SnakePawn.generated.h"
 
@@ -21,6 +22,11 @@ public:
 	// So that we can have multiple children connected to the root component
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USceneComponent* SceneComponent;
+
+	UPROPERTY(EditAnywhere, Category = "Effects")
+	UParticleSystem* EatParticle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	USoundBase* EatSound;
 
 	// Our snake collider
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

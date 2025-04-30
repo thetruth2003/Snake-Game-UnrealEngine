@@ -105,6 +105,21 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 	if (OtherActor->IsA(ASnakeFood::StaticClass()))
 	{
 		GrowTail();
+
+		if (EatParticle)
+		{
+			FVector SpawnLoc = OtherActor->GetActorLocation();
+			UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(), EatParticle, SpawnLoc
+			);
+		}
+
+		if (EatSound)
+		{
+			FVector SpawnLoc = OtherActor->GetActorLocation();
+			UGameplayStatics::PlaySoundAtLocation(GetWorld(), EatSound, SpawnLoc);
+		}
+		
 		OtherActor->Destroy();
 
 		// Notify GameMode
