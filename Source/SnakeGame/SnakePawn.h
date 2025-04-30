@@ -4,8 +4,8 @@
 #include "Definitions.h"
 #include "GameFramework/Pawn.h"
 #include "Components/SphereComponent.h"
-#include "Particles/ParticleSystem.h"     
-#include "InputMappingContext.h" 
+#include "Components/WidgetComponent.h"    
+#include "Sound/SoundBase.h"
 #include "SnakePawn.generated.h"
 
 class ASnakeTailSegment;
@@ -27,6 +27,18 @@ public:
 	UParticleSystem* EatParticle;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
 	USoundBase* EatSound;
+
+	// NEW — detect nearby apples
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Detection", meta=(AllowPrivateAccess="true"))
+	USphereComponent* ProximitySphere;  
+	
+	// NEW — the question-mark widget
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Effects")
+	UWidgetComponent* QuestionMarkWidget;  
+
+	// NEW — sound when apple is spotted
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Effects")
+	USoundBase* NoticeSound; 
 
 	// Our snake collider
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -140,4 +152,18 @@ private:
 
 	// *** NEW: Helper function to snap a position to the grid ***
 	static FVector SnapToGrid(const FVector& InLocation);
+
+	FTimerHandle QuestionMarkTimerHandle;
+
+	// overlap callback for ProximitySphere
+	UFUNCTION()
+	void OnProximityOverlapBegin(UPrimitiveComponent* OverlappedComp,
+								 AActor* OtherActor,
+								 UPrimitiveComponent* OtherComp,
+								 int32 OtherBodyIndex,
+								 bool bFromSweep,
+								 const FHitResult& SweepResult);
+
+	// hides the question mark again
+	void HideQuestionMark();
 };

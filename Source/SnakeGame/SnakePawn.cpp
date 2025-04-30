@@ -5,6 +5,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInterface.h"
 #include "SnakeWorld.h"
+#include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Sound/SoundBase.h"
+#include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputSubsystems.h"
 #include "Definitions.h"
@@ -27,6 +31,21 @@ ASnakePawn::ASnakePawn()
 	CollisionComponent->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
 	CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 	CollisionComponent->SetGenerateOverlapEvents(true);
+
+	// Create & configure the proximity sphere
+	ProximitySphere = CreateDefaultSubobject<USphereComponent>(TEXT("ProximitySphere"));
+	ProximitySphere->SetupAttachment(RootComponent);
+	ProximitySphere->InitSphereRadius(300.f);                   // adjust radius as you like
+	ProximitySphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ProximitySphere->SetCollisionResponseToAllChannels(ECR_Overlap);
+	ProximitySphere->OnComponentBeginOverlap.AddDynamic(this, &ASnakePawn::OnProximityOverlapBegin);
+
+	// Create question-mark widget, hidden by default
+	QuestionMarkWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestionMarkWidget"));
+	QuestionMarkWidget->SetupAttachment(RootComponent);
+	QuestionMarkWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	QuestionMarkWidget->SetDrawAtDesiredSize(true);
+	QuestionMarkWidget->SetVisibility(false);
 }
 
 void ASnakePawn::BeginPlay()
@@ -189,6 +208,44 @@ void ASnakePawn::GameOver()
 		UGameplayStatics::OpenLevel(World, FName(*CurrentLevel));
 	}
 	*/
+}
+
+void ASnakePawn::OnProximityOverlapBegin(UPrimitiveComponent* OverlappedComp,
+										 AActor* OtherActor,
+										 UPrimitiveComponent* OtherComp,
+										 int32 OtherBodyIndex,
+										 bool bFromSweep,
+										 const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor->IsA(ASnakeFood::StaticClass()))
+	{
+		// play notice sound
+		if (NoticeSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, NoticeSound, GetActorLocation());
+		}
+
+		// show the question-mark widget briefly
+		if (QuestionMarkWidget)
+		{
+			QuestionMarkWidget->SetVisibility(true);
+			GetWorld()->GetTimerManager().SetTimer(
+				QuestionMarkTimerHandle,
+				this,
+				&ASnakePawn::HideQuestionMark,
+				0.5f,    // half a second
+				false
+			);
+		}
+	}
+}
+
+void ASnakePawn::HideQuestionMark()
+{
+	if (QuestionMarkWidget)
+	{
+		QuestionMarkWidget->SetVisibility(false);
+	}
 }
 
 void ASnakePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
