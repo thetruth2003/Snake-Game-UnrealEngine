@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "SnakePawn.h"
+#include "Sound/SoundBase.h"
 #include "GameFramework/GameModeBase.h"
 #include "SnakeGameMode.generated.h"
 
@@ -67,6 +68,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game")
     int32 Score = 0;
+
+    UPROPERTY(EditAnywhere, Category="Audio")
+    USoundBase* AmbientSound;
 
     UFUNCTION()
     void NotifyAppleEaten(int32 ControllerId);

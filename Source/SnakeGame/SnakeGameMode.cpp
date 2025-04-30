@@ -27,6 +27,11 @@ void ASnakeGameMode::BeginPlay()
 {
     Super::BeginPlay();
     SetGameState(CurrentState);
+    if (AmbientSound)
+    {
+        // plays a 2D looping sound (loop flag comes from the Sound asset settings)
+        UGameplayStatics::SpawnSound2D(GetWorld(), AmbientSound);
+    }
 }
 
 void ASnakeGameMode::SetGameType(EGameType NewType)
