@@ -72,6 +72,9 @@ public:
     UPROPERTY(EditAnywhere, Category="Audio")
     USoundBase* AmbientSound;
 
+    UPROPERTY(EditAnywhere, Category="Audio")
+    USoundBase* GameOverSound;
+
     UFUNCTION()
     void NotifyAppleEaten(int32 ControllerId);
 
@@ -103,6 +106,9 @@ protected:
 private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
     EGameState CurrentState = EGameState::MainMenu;
+
+    UPROPERTY()
+    UAudioComponent* AmbientAudioComponent = nullptr;
 
     UPROPERTY()
     ASnakePawn* SpawnedAISnake = nullptr;

@@ -7,6 +7,7 @@
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
+#include "Components/AudioComponent.h"
 
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
@@ -31,6 +32,7 @@ void ASnakeGameMode::BeginPlay()
     {
         // plays a 2D looping sound (loop flag comes from the Sound asset settings)
         UGameplayStatics::SpawnSound2D(GetWorld(), AmbientSound);
+        AmbientAudioComponent = UGameplayStatics::SpawnSound2D(GetWorld(), AmbientSound);
     }
 }
 
@@ -372,6 +374,18 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (GameOverWidgetClass)
         {
+            // 1) Stop the ambient loop
+            if (AmbientAudioComponent)
+            {
+                AmbientAudioComponent->Stop();
+            }
+
+            // 2) Play your game-over song once
+            if (GameOverSound)
+            {
+                UGameplayStatics::SpawnSound2D(GetWorld(), GameOverSound);
+            }
+
             auto* UW = CreateWidget<UMyUserWidget>(GetWorld(), GameOverWidgetClass);
             CurrentWidget = UW;
             if (UW)
