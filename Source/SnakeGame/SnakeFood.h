@@ -11,8 +11,7 @@ class SNAKEGAME_API ASnakeFood : public AActor
 	
 public:	
 	ASnakeFood();
-
-	// The food’s visual representation.
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
 };

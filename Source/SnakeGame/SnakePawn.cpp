@@ -10,7 +10,6 @@
 #include "Definitions.h"
 #include "SnakeAIController.h"
 
-// Sets default values
 ASnakePawn::ASnakePawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -19,24 +18,21 @@ ASnakePawn::ASnakePawn()
 	RootComponent = SceneComponent;
 
 	AutoPossessPlayer = EAutoReceiveInput::Disabled;
-
-	// Create the collision component and attach it.
+	
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	CollisionComponent->SetupAttachment(RootComponent);
 		
-	// Hard override any Blueprint modifications: force collision to query-only and overlap with all channels.
+	// Hard override collision
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionComponent->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
 	CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 	CollisionComponent->SetGenerateOverlapEvents(true);
 }
 
-// Called when the game starts or when spawned.
 void ASnakePawn::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Reapply collision settings to override any changes made in Blueprint.
+	
 	if (CollisionComponent)
 	{
 		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -44,13 +40,11 @@ void ASnakePawn::BeginPlay()
 		CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 		CollisionComponent->SetGenerateOverlapEvents(true);
 	}
-
-	// Snap the snake to the nearest tile center.
+	
 	FVector SnappedLocation = SnapToGrid(GetActorLocation());
 	SetActorLocation(SnappedLocation);
 	LastTilePosition = SnappedLocation;
-
-	// Bind the overlap event on the collision component.
+	
 	if (CollisionComponent)
 	{
 		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASnakePawn::OnOverlapBegin);
@@ -62,16 +56,14 @@ FVector ASnakePawn::SnapToGrid(const FVector& InLocation)
 	return ::SnapToGrid(InLocation);
 }
 
-// Called every frame.
 void ASnakePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// Update falling and movement.
+	
 	UpdateFalling(DeltaTime);
 	UpdateMovement(DeltaTime);
 
-	// Record the head's current position if it has moved a minimum distance.
+	// Record the head's current 
 	const float RecordDistance = 10.0f;
 	FVector CurrentHeadPos = GetActorLocation();
 	if (HeadPositionHistory.Num() == 0 ||
@@ -79,16 +71,15 @@ void ASnakePawn::Tick(float DeltaTime)
 	{
 		HeadPositionHistory.Add(CurrentHeadPos);
 	}
-
-	// Limit history length to avoid unbounded growth.
+	
 	int32 MaxHistoryLength = (TailSegments.Num() + 1) * TailHistorySpacing + 10;
 	if (HeadPositionHistory.Num() > MaxHistoryLength)
 	{
 		HeadPositionHistory.RemoveAt(0, HeadPositionHistory.Num() - MaxHistoryLength);
 	}
 
-	// Update tail segments to follow the head history.
-	const float SmoothSpeed = 10.0f; // Adjust as needed.
+	// Update tail to follow the head history
+	const float SmoothSpeed = 10.0f;
 	for (int32 i = 0; i < TailSegments.Num(); i++)
 	{
 		int32 HistoryIndex = HeadPositionHistory.Num() - 1 - (i + 1) * TailHistorySpacing;
@@ -101,9 +92,6 @@ void ASnakePawn::Tick(float DeltaTime)
 	}
 }
 
-// Overlap event: Handles collision with food, tail, or walls.
-// In SnakePawn.cpp
-
 void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 								UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
 								bool bFromSweep, const FHitResult& SweepResult)
@@ -113,13 +101,13 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 
-	// Collision with Food: Grow tail, destroy the food, and request new food spawn.
+	// Collision with food
 	if (OtherActor->IsA(ASnakeFood::StaticClass()))
 	{
 		GrowTail();
 		OtherActor->Destroy();
 
-		// Notify the GameMode instead of directly spawning
+		// Notify GameMode
 		ASnakeGameMode* GM = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 		if (GM)
 		{
@@ -128,7 +116,6 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 
 			if (APlayerController* PC = Cast<APlayerController>(Con))
 			{
-				// human player
 				ControllerId = PC->GetLocalPlayer()->GetControllerId();
 			}
 			else if (Cast<ASnakeAIController>(Con))
@@ -141,11 +128,10 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		}
 	}
 
-	// Collision with Tail Segment: Check the collision flag.
+	// Collision with Tail
 	if (OtherActor->IsA(ASnakeTailSegment::StaticClass()))
 	{
 		ASnakeTailSegment* TailSeg = Cast<ASnakeTailSegment>(OtherActor);
-		// Only trigger game over if this tail segment is fully enabled for collision.
 		if (TailSeg && TailSeg->bCanCollide)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Collision with tail detected! Game Over!"));
@@ -154,12 +140,11 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		}
 		else
 		{
-			// Ignore collision if the tail segment is still in its 'cooldown' phase.
 			return;
 		}
 	}
 
-	// Collision with Walls: Check if the actor or component has the "Wall" tag.
+	// Collision with Walls
 	if (OtherActor->ActorHasTag("Wall") || (OtherComp && OtherComp->ComponentHasTag("Wall")))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Collision with wall detected! Game Over!"));
@@ -170,16 +155,13 @@ void ASnakePawn::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 
 
 
-// GameOver: Currently restarts the level.
 void ASnakePawn::GameOver()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Game Over triggered in GameOver() function."));
-
-	// Get a reference to your custom game mode.
+	
 	ASnakeGameMode* GameMode = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (GameMode)
 	{
-		// Transition to the Game Over state.
 		GameMode->SetGameState(EGameState::Outro);
 	}
 
@@ -207,8 +189,7 @@ void ASnakePawn::HandlePauseToggle()
 {
 	ASnakeGameMode* GM = Cast<ASnakeGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (!GM) return;
-
-	// Use the public getter instead of accessing the private member directly
+	
 	if (GM->GetCurrentState() == EGameState::Game)
 	{
 		GM->SetGameState(EGameState::Pause);
@@ -219,12 +200,10 @@ void ASnakePawn::HandlePauseToggle()
 	}
 }
 
-// Moves the snake by the given distance.
 void ASnakePawn::MoveSnake(float Distance)
 {
 	FVector Position = GetActorLocation();
-
-	// Update movement based on current direction.
+	
 	switch (Direction)
 	{
 	case ESnakeDirection::Up:
@@ -269,12 +248,9 @@ void ASnakePawn::UpdateMovement(float DeltaTime)
 			UpdateDirection();
 		}
 	}
-
-	// Finally commit
 	SetActorLocation(CurrentPosition);
 }
 
-// Updates falling behavior and handles collision with the floor.
 void ASnakePawn::UpdateFalling(float DeltaTime)
 {
 	FVector Position = GetActorLocation();
@@ -301,7 +277,6 @@ void ASnakePawn::UpdateFalling(float DeltaTime)
 	SetActorLocation(Position);
 }
 
-// Makes the snake jump if not already in the air.
 void ASnakePawn::Jump()
 {
 	if (!bInAir)
@@ -310,7 +285,7 @@ void ASnakePawn::Jump()
 	}
 }
 
-// Updates the snake's direction from the queue.
+
 void ASnakePawn::UpdateDirection()
 {
 	if (DirectionQueue.IsEmpty())
@@ -321,7 +296,7 @@ void ASnakePawn::UpdateDirection()
 	Direction = DirectionQueue[0];
 	DirectionQueue.RemoveAt(0);
 
-	// Rotate the snake according to the new direction.
+	// Rotate the snake according to new direction.
 	switch (Direction)
 	{
 	case ESnakeDirection::Up:
@@ -383,10 +358,8 @@ void ASnakePawn::GrowTail()
 	);
 
 	
-
 	if (NewSegment)
 	{
-		// 1) Copy the head’s material (slot 0) onto the new tail segment
 		if (UStaticMeshComponent* HeadMesh = FindComponentByClass<UStaticMeshComponent>())
 		{
 			if (UMaterialInterface* HeadMat = HeadMesh->GetMaterial(0))
@@ -394,12 +367,10 @@ void ASnakePawn::GrowTail()
 				NewSegment->MeshComponent->SetMaterial(0, HeadMat);
 			}
 		}
-
-		// 2) Preserve your existing collision setup
+		
 		NewSegment->MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		NewSegment->bCanCollide = false;
-
-		// 3) Schedule re-enable collision after a brief delay
+		
 		FTimerHandle TimerHandle;
 		FTimerDelegate TimerDel;
 		TimerDel.BindLambda([NewSegment]()
@@ -411,8 +382,7 @@ void ASnakePawn::GrowTail()
 			}
 		});
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDel, 0.3f, false);
-
-		// 4) Add to your tail arrays
+		
 		TailSegments.Add(NewSegment);
 		TailTargetPositions.Add(LastTilePosition);
 
@@ -422,7 +392,6 @@ void ASnakePawn::GrowTail()
 
 
 
-// Updates tail targets to create smooth following.
 void ASnakePawn::UpdateTailTargets(const FVector& PreviousHeadPosition)
 {
 	if (TailSegments.Num() > 0)
@@ -435,7 +404,6 @@ void ASnakePawn::UpdateTailTargets(const FVector& PreviousHeadPosition)
 	}
 }
 
-// Updates tail positions after moving a full tile.
 void ASnakePawn::UpdateTailPositions(const FVector& PreviousTilePosition)
 {
 	if (TailSegments.Num() > 0)

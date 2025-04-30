@@ -7,6 +7,5 @@ ASnakeFood::ASnakeFood()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
-
-	// (Optional) Set collision settings here or do it in Blueprint.
+	
 }

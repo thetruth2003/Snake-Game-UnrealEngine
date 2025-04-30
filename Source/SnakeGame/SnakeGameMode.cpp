@@ -31,7 +31,7 @@ void ASnakeGameMode::BeginPlay()
 
 void ASnakeGameMode::SetGameType(EGameType NewType)
 {
-    // —— Cleanup extra local player if switching out of any 2-player human mode ——
+    // Cleanup extra local player 
     if (GetGameInstance()->GetNumLocalPlayers() > 1
         && NewType != EGameType::Coop
         && NewType != EGameType::PvP
@@ -46,7 +46,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         }
     }
 
-    // —— Cleanup AI snake if leaving any AI mode ——
+    // Cleanup AI snake
     if (SpawnedAISnake
         && NewType != EGameType::PvAI
         && NewType != EGameType::CoopAI)
@@ -62,7 +62,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
                *UEnum::GetValueAsString(NewType));
     }
 
-    // —— Core spawn logic ——  
+    // Core spawn logic  
     CurrentGameType = NewType;
     UE_LOG(LogTemp, Log, TEXT("GameType set to %s"),
            *UEnum::GetValueAsString(NewType));
@@ -70,7 +70,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
     UWorld* W = GetWorld();
     if (!W) return;
 
-    // 1) Spawn second human player for Coop or PvP
+    // Spawn second human player
     if ((NewType == EGameType::Coop || NewType == EGameType::PvP)
         && GetGameInstance()->GetNumLocalPlayers() < 2)
     {
@@ -78,12 +78,11 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         UE_LOG(LogTemp, Log, TEXT("Created second local player (ID 1)"));
     }
 
-    // 2) Spawn AI snake for PvAI or CoopAI
+    // pawn AI snake
     if (NewType == EGameType::PvAI || NewType == EGameType::CoopAI)
     {
         if (!IsValid(SpawnedAISnake))
         {
-            // Find PlayerStart2 or fallback
             FTransform SpawnT;
             APlayerStart* P2 = nullptr;
             TArray<AActor*> Starts;
@@ -139,8 +138,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
             UE_LOG(LogTemp, Warning, TEXT("AI snake already spawned; skipping."));
         }
     }
-
-    // 3) Go live
+    
     SetGameState(EGameState::Game);
 }
 
@@ -151,7 +149,6 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
     int32 Id = NewPlayer->GetLocalPlayer()->GetControllerId();
     if (Id == 1 && (CurrentGameType == EGameType::Coop || CurrentGameType == EGameType::PvP))
     {
-        // Find PlayerStart2 or fallback
         APlayerStart* TargetStart = nullptr;
         TArray<AActor*> Starts;
         UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), Starts);
@@ -200,7 +197,7 @@ void ASnakeGameMode::PostLogin(APlayerController* NewPlayer)
 
 void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
 {
-    // 1) Update per‐level and total counters
+    // Update counters
     if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
     {
         if (ControllerId == 0)
@@ -218,16 +215,14 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
     {
         ++ApplesEaten;
     }
-
-    // 2) Always bump the global score if you still use it
+    
     ++Score;
 
-    // 3) Update the UI
+    // Update UI
     if (CurrentState == EGameState::Game && InGameWidget)
     {
         if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
         {
-            // Show the cumulative score
             InGameWidget->SetPlayerScores(TotalApplesP1, TotalApplesP2);
         }
         else
@@ -235,47 +230,39 @@ void ASnakeGameMode::NotifyAppleEaten(int32 ControllerId)
             InGameWidget->SetScore(Score);
         }
     }
-
-    // 4) Grab the world
+    
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
     );
     if (!World) return;
-
-    // 5) How many apples this level?
+    
     int32 EatenThisLevel = (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                            ? (LevelApplesP1 + LevelApplesP2)
                            : ApplesEaten;
-
-    // 6) Spawn next apple or advance level
+    
     if (EatenThisLevel < ApplesToFinish)
     {
         World->SpawnFood();
     }
     else
     {
-        // Pause before switching
         SetGameState(EGameState::Pause);
-
-        // Next level
+        
         int32 Next = World->LevelIndex + 1;
         if (!World->DoesLevelExist(Next))
         {
             SetGameState(EGameState::Outro);
             return;
         }
-
-        // Advance the level
+        
         World->LevelIndex = Next;
         World->LoadLevelFromText();
         World->SpawnFood();
-
-        // 7) Reset only the per‐level counters
+        
         LevelApplesP1 = 0;
         LevelApplesP2 = 0;
         ApplesEaten   = 0;
-
-        // 8) Resume play
+        
         SetGameState(EGameState::Game);
     }
 }
@@ -300,15 +287,13 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 
     case EGameState::Game:
         UGameplayStatics::SetGamePaused(GetWorld(), false);
-
-        // 1) Create the widget if this is the first time
+        
         if (!InGameWidget && InGameWidgetClass)
         {
             InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
             if (InGameWidget)
             {
                 InGameWidget->AddToViewport();
-                // score visibility & initial score setup...
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
                     InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
@@ -329,8 +314,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 UE_LOG(LogTemp, Error, TEXT("Failed to create InGameWidget from %s"), *GetNameSafe(InGameWidgetClass));
             }
         }
-
-        // 2) Always update the level display
+        
         if (InGameWidget)
         {
             if (ASnakeWorld* W = Cast<ASnakeWorld>(
@@ -418,22 +402,17 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
 AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller)
 {
     int32 ControllerId = 0;
-
-    // 1) Cast to APlayerController
+    
     if (APlayerController* PC = Cast<APlayerController>(Controller))
     {
-        // 2) Get the ULocalPlayer
         if (ULocalPlayer* LP = PC->GetLocalPlayer())
         {
-            // 3) Pull the controller index
             ControllerId = LP->GetControllerId();
         }
     }
-
-    // Decide tag based on ID
+    
     FName DesiredTag = (ControllerId == 1) ? TEXT("PlayerStart2") : TEXT("PlayerStart1");
-
-    // Find the properly tagged PlayerStart
+    
     for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
     {
         if (It->ActorHasTag(DesiredTag))
@@ -443,8 +422,7 @@ AActor* ASnakeGameMode::ChoosePlayerStart_Implementation(AController* Controller
             return *It;
         }
     }
-
-    // Fallback
+    
     return Super::ChoosePlayerStart_Implementation(Controller);
 }
 
@@ -452,11 +430,9 @@ void ASnakeGameMode::RestartGame()
 {
     UWorld* W = GetWorld();
     if (!W) return;
-
-    // Get map name without prefix
+    
     FString MapName = W->GetMapName();
     MapName.RemoveFromStart(W->StreamingLevelsPrefix);
-
-    // Open it again
+    
     UGameplayStatics::OpenLevel(W, FName(*MapName));
 }
