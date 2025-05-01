@@ -17,6 +17,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* P2Mapping;
 	
+
+	// Tested for one controller for two players
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	UInputMappingContext* SnakeMapping;
 
