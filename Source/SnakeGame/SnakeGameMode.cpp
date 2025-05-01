@@ -2,6 +2,7 @@
 #include "MyUserWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 #include "SnakeWorld.h"
 #include "SnakeAIController.h"
 #include "Engine/LocalPlayer.h"
@@ -288,19 +289,35 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         if (MainMenuWidgetClass)
         {
             CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), MainMenuWidgetClass);
-            if (CurrentWidget) CurrentWidget->AddToViewport();
+            if (CurrentWidget)
+            {
+                CurrentWidget->AddToViewport();
+
+                // — SHOW MOUSE & SWITCH TO UI ONLY MODE —
+                if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+                {
+                    PC->bShowMouseCursor = true;
+                    FInputModeUIOnly UIInput;
+                    UIInput.SetWidgetToFocus( CurrentWidget->TakeWidget() );
+                    UIInput.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                    PC->SetInputMode(UIInput);
+                }
+            }
         }
         break;
 
     case EGameState::Game:
-        UGameplayStatics::SetGamePaused(GetWorld(), false);
-        
+    // 1) Resume the game
+    UGameplayStatics::SetGamePaused(GetWorld(), false);
+
+        // 2) Create and add the In-Game UI (only if not already created)
         if (!InGameWidget && InGameWidgetClass)
         {
             InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
             if (InGameWidget)
             {
                 InGameWidget->AddToViewport();
+
                 if (CurrentGameType == EGameType::PvP || CurrentGameType == EGameType::PvAI)
                 {
                     InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Collapsed);
@@ -310,9 +327,9 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 }
                 else
                 {
-                    InGameWidget->ScoreText  ->SetVisibility(ESlateVisibility::Visible);
-                    InGameWidget->ScoreP1Text->SetVisibility(ESlateVisibility::Collapsed);
-                    InGameWidget->ScoreP2Text->SetVisibility(ESlateVisibility::Collapsed);
+                    InGameWidget->ScoreText    ->SetVisibility(ESlateVisibility::Visible);
+                    InGameWidget->ScoreP1Text  ->SetVisibility(ESlateVisibility::Collapsed);
+                    InGameWidget->ScoreP2Text  ->SetVisibility(ESlateVisibility::Collapsed);
                     InGameWidget->SetScore(Score);
                 }
             }
@@ -321,7 +338,8 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 UE_LOG(LogTemp, Error, TEXT("Failed to create InGameWidget from %s"), *GetNameSafe(InGameWidgetClass));
             }
         }
-        
+
+        // 3) Update the level display
         if (InGameWidget)
         {
             if (ASnakeWorld* W = Cast<ASnakeWorld>(
@@ -333,6 +351,13 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             {
                 InGameWidget->SetLevel(1);
             }
+        }
+
+        // 4) Hide the OS cursor and switch input back to game‐only mode
+        if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+        {
+            PC->bShowMouseCursor = false;
+            PC->SetInputMode(FInputModeGameOnly());
         }
         break;
 
@@ -346,6 +371,17 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             if (UW)
             {
                 UW->AddToViewport();
+
+                // — SHOW MOUSE & SWITCH TO UI ONLY MODE —
+                if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+                {
+                    PC->bShowMouseCursor = true;
+                    FInputModeUIOnly UIInput;
+                    UIInput.SetWidgetToFocus(UW->TakeWidget());
+                    UIInput.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                    PC->SetInputMode(UIInput);
+                }
+                
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
                         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
@@ -391,6 +427,16 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             if (UW)
             {
                 UW->AddToViewport();
+
+                if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+                {
+                    PC->bShowMouseCursor = true;
+                    FInputModeUIOnly UIInput;
+                    UIInput.SetWidgetToFocus(UW->TakeWidget());
+                    UIInput.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                    PC->SetInputMode(UIInput);
+                }
+                
                 if (ASnakeWorld* W = Cast<ASnakeWorld>(
                         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())))
                 {
