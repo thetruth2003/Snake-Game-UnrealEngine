@@ -31,7 +31,6 @@ void ASnakeGameMode::BeginPlay()
     SetGameState(CurrentState);
     if (AmbientSound)
     {
-        // plays a 2D looping sound (loop flag comes from the Sound asset settings)
         UGameplayStatics::SpawnSound2D(GetWorld(), AmbientSound);
         AmbientAudioComponent = UGameplayStatics::SpawnSound2D(GetWorld(), AmbientSound);
     }
@@ -86,7 +85,7 @@ void ASnakeGameMode::SetGameType(EGameType NewType)
         UE_LOG(LogTemp, Log, TEXT("Created second local player (ID 1)"));
     }
 
-    // pawn AI snake
+    // Spawn AI snake
     if (NewType == EGameType::PvAI || NewType == EGameType::CoopAI)
     {
         if (!IsValid(SpawnedAISnake))
@@ -292,8 +291,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             if (CurrentWidget)
             {
                 CurrentWidget->AddToViewport();
-
-                // — SHOW MOUSE & SWITCH TO UI ONLY MODE —
+                
                 if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
                 {
                     PC->bShowMouseCursor = true;
@@ -307,10 +305,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         break;
 
     case EGameState::Game:
-    // 1) Resume the game
     UGameplayStatics::SetGamePaused(GetWorld(), false);
-
-        // 2) Create and add the In-Game UI (only if not already created)
         if (!InGameWidget && InGameWidgetClass)
         {
             InGameWidget = CreateWidget<UMyUserWidget>(GetWorld(), InGameWidgetClass);
@@ -338,8 +333,6 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 UE_LOG(LogTemp, Error, TEXT("Failed to create InGameWidget from %s"), *GetNameSafe(InGameWidgetClass));
             }
         }
-
-        // 3) Update the level display
         if (InGameWidget)
         {
             if (ASnakeWorld* W = Cast<ASnakeWorld>(
@@ -352,8 +345,6 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
                 InGameWidget->SetLevel(1);
             }
         }
-
-        // 4) Hide the OS cursor and switch input back to game‐only mode
         if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
         {
             PC->bShowMouseCursor = false;
@@ -371,8 +362,7 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
             if (UW)
             {
                 UW->AddToViewport();
-
-                // — SHOW MOUSE & SWITCH TO UI ONLY MODE —
+                
                 if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
                 {
                     PC->bShowMouseCursor = true;
@@ -410,13 +400,10 @@ void ASnakeGameMode::SetGameState(EGameState NewState)
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         if (GameOverWidgetClass)
         {
-            // 1) Stop the ambient loop
             if (AmbientAudioComponent)
             {
                 AmbientAudioComponent->Stop();
             }
-
-            // 2) Play your game-over song once
             if (GameOverSound)
             {
                 UGameplayStatics::SpawnSound2D(GetWorld(), GameOverSound);

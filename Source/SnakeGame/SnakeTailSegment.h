@@ -11,12 +11,10 @@ class SNAKEGAME_API ASnakeTailSegment : public AActor
 	
 public:	
 	ASnakeTailSegment();
-
-	// A simple mesh to represent the tail segment.
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
-
-	// Flag to disable collision until the tail segment has had time to move away from the head.
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
 	bool bCanCollide = false;
 };

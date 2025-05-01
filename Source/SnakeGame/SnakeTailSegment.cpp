@@ -8,8 +8,7 @@ ASnakeTailSegment::ASnakeTailSegment()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
-
-	// Load a default cube mesh.
+	
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube"));
 	if (CubeMesh.Succeeded())
 	{
@@ -19,15 +18,12 @@ ASnakeTailSegment::ASnakeTailSegment()
 	{
 		UE_LOG(LogTemp, Error, TEXT("Cube mesh not found!"));
 	}
-
-	// Adjust the scale if necessary.
+	
 	MeshComponent->SetWorldScale3D(FVector(0.5f));
-
-	// Hard override collision to QueryOnly and disable it initially.
+	
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	MeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-
-	// Initially disable collision effect.
+	
 	bCanCollide = false;
 }

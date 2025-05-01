@@ -12,12 +12,10 @@ class SNAKEGAME_API ASnakeFood : public AActor
 
 public:    
 	ASnakeFood();
-
-	/** The mesh for the apple */  
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
-
-	/** Glow light attached to the apple */  
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Light")
 	UPointLightComponent* GlowLight;   // ← new
 };

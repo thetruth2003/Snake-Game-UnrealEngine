@@ -32,15 +32,15 @@ ASnakePawn::ASnakePawn()
 	CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 	CollisionComponent->SetGenerateOverlapEvents(true);
 
-	// Create & configure the proximity sphere
+	// Create & configure the proximity sphere for "huh" sound
 	ProximitySphere = CreateDefaultSubobject<USphereComponent>(TEXT("ProximitySphere"));
 	ProximitySphere->SetupAttachment(RootComponent);
-	ProximitySphere->InitSphereRadius(300.f);                   // adjust radius as you like
+	ProximitySphere->InitSphereRadius(300.f);
 	ProximitySphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ProximitySphere->SetCollisionResponseToAllChannels(ECR_Overlap);
 	ProximitySphere->OnComponentBeginOverlap.AddDynamic(this, &ASnakePawn::OnProximityOverlapBegin);
 
-	// Create question-mark widget, hidden by default
+	// Create question-mark widget
 	QuestionMarkWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestionMarkWidget"));
 	QuestionMarkWidget->SetupAttachment(RootComponent);
 	QuestionMarkWidget->SetWidgetSpace(EWidgetSpace::Screen);
@@ -219,7 +219,7 @@ void ASnakePawn::OnProximityOverlapBegin(UPrimitiveComponent* OverlappedComp,
 {
 	if (OtherActor && OtherActor->IsA(ASnakeFood::StaticClass()))
 	{
-		// play notice sound
+		// play notice sound "huh"
 		if (NoticeSound)
 		{
 			UGameplayStatics::PlaySoundAtLocation(this, NoticeSound, GetActorLocation());
@@ -367,8 +367,6 @@ void ASnakePawn::UpdateDirection()
 
 	Direction = DirectionQueue[0];
 	DirectionQueue.RemoveAt(0);
-
-	// Rotate the snake according to new direction.
 	switch (Direction)
 	{
 	case ESnakeDirection::Up:
@@ -386,7 +384,7 @@ void ASnakePawn::UpdateDirection()
 	}
 }
 
-// Returns a unit vector based on the current direction.
+// Return unit vector based on the current direction
 FVector ASnakePawn::GetDirectionVector() const
 {
 	switch (Direction)
@@ -404,7 +402,7 @@ FVector ASnakePawn::GetDirectionVector() const
 	}
 }
 
-// Adds a new direction to the movement queue.
+// Add a new direction to the movement queue
 void ASnakePawn::SetNextDirection(ESnakeDirection InDirection)
 {
 	DirectionQueue.Add(InDirection);

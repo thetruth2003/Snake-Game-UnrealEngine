@@ -110,7 +110,7 @@ bool ASnakeAIController::FindPath(
     TArray<FVector>& OutPath
 ) const
 {
-    // Get the world and its walkable floor tiles
+    // Get the world and its walkable tiles
     ASnakeWorld* World = Cast<ASnakeWorld>(
         UGameplayStatics::GetActorOfClass(GetWorld(), ASnakeWorld::StaticClass())
     );
@@ -118,7 +118,7 @@ bool ASnakeAIController::FindPath(
 
     TSet<FVector> Walkable(World->FloorTileLocations);
 
-    // Exclude any tiles occupied by the snake’s tail
+    // Exclude tiles occupied by the snake’s tail
     TSet<FVector> BodyTiles;
     if (ASnakePawn* SnakePawn = Cast<ASnakePawn>(GetPawn()))
     {
@@ -133,11 +133,8 @@ bool ASnakeAIController::FindPath(
         {
             BodyTiles.Add(SnapGrid(Segment->GetActorLocation()));
         }
-        // Allow starting tile even if it overlaps the first segment
         BodyTiles.Remove(Start);
     }
-
-    // Snap start/goal to grid and verify goal is reachable
     auto Snap = [&](const FVector& V){
         return FVector(
             FMath::RoundToFloat(V.X / TileSize) * TileSize,
@@ -148,7 +145,7 @@ bool ASnakeAIController::FindPath(
     FVector S = Snap(Start), G = Snap(Goal);
     if (!Walkable.Contains(G)) return false;
 
-    // 4) BFS setup
+    // BFS setup
     std::queue<FVector> Q;
     Q.push(S);
     TMap<FVector, FVector> CameFrom;
@@ -161,7 +158,7 @@ bool ASnakeAIController::FindPath(
         FVector(0, -TileSize, 0)
     };
 
-    // BFS loop, skipping any body‐occupied tiles
+    // BFS loop, skips any body‐occupied tile
     while (!Q.empty())
     {
         FVector Curr = Q.front(); Q.pop();
@@ -181,7 +178,7 @@ bool ASnakeAIController::FindPath(
         }
     }
 
-    // Reconstruct path if goal reached
+    // Reconstruct path after goal reached
     if (!CameFrom.Contains(G))
         return false;
 

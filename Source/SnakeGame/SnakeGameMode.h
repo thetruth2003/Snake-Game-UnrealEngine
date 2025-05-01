@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -112,12 +111,9 @@ private:
 
     UPROPERTY()
     ASnakePawn* SpawnedAISnake = nullptr;
-
-    // Per‐level PvP counters (reset each level)
+    
     int32 LevelApplesP1 = 0;
     int32 LevelApplesP2 = 0;
-
-    // Total PvP counters (never reset)
     int32 TotalApplesP1 = 0;
     int32 TotalApplesP2 = 0;
 };
