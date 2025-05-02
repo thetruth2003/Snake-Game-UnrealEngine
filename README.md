@@ -35,12 +35,10 @@
 
 ## Screenshots
 
-Screenshots Screenshots  
-<!-- Replace with your own images -->
-![Main Menu](path/to/main_menu.png)  
-![In-Game HUD](path/to/in_game_hud.png)  
-![AI Snake](path/to/ai_snake.png)  
-![Game Over](path/to/game_over.png)  
+Screenshots           |  Screenshots 
+:-------------------------:|:-------------------------:
+![](ForReadme/1.png)  |  ![](ForReadme/3.png)
+![](ForReadme/2.png)  |  ![](ForReadme/4.png)
 
 * * *
 
