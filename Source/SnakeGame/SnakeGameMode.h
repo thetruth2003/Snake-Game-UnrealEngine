@@ -44,9 +44,7 @@ public:
     ASnakeGameMode();
 
     
-    // ←— mark this visible/readable in BP
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GameType")
-    EGameType CurrentGameType;
+    
 
     // ←— simple getter if you prefer    
     UFUNCTION(BlueprintPure, Category="GameType")
