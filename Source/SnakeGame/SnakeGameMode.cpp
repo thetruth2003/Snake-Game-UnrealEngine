@@ -10,6 +10,32 @@
 #include "EngineUtils.h"
 #include "Components/AudioComponent.h"
 
+EGameType ASnakeGameMode::ToV2Variant(EGameType BaseType)
+{
+    switch (BaseType)
+    {
+    case EGameType::SinglePlayer: return EGameType::SinglePlayerV2;
+    case EGameType::PvP:          return EGameType::PvPV2;
+    case EGameType::Coop:         return EGameType::CoopV2;
+    case EGameType::PvAI:         return EGameType::PvAIV2;
+    case EGameType::CoopAI:       return EGameType::CoopAIV2;
+    default:                      return BaseType;
+    }
+}
+
+EGameType ASnakeGameMode::ToBaseVariant(EGameType Type)
+{
+    switch (Type)
+    {
+    case EGameType::SinglePlayerV2: return EGameType::SinglePlayer;
+    case EGameType::PvPV2:          return EGameType::PvP;
+    case EGameType::CoopV2:         return EGameType::Coop;
+    case EGameType::PvAIV2:         return EGameType::PvAI;
+    case EGameType::CoopAIV2:       return EGameType::CoopAI;
+    default:                        return Type;
+    }
+}
+
 ASnakeGameMode::ASnakeGameMode()
     : CurrentWidget(nullptr)
     , PauseWidget(nullptr)
@@ -38,6 +64,15 @@ void ASnakeGameMode::BeginPlay()
 
 void ASnakeGameMode::SetGameType(EGameType NewType)
 {
+    // 1) If depth-level is on, swap in the V2 sibling.
+    if (bEnable3DDepthLevel)
+    {
+        NewType = ToV2Variant(NewType);
+    }
+
+    // 2) Work off the *base* version for all internal spawn/UI checks:
+    const EGameType BaseType = ToBaseVariant(NewType);
+
     // Cleanup extra local player 
     if (GetGameInstance()->GetNumLocalPlayers() > 1
         && NewType != EGameType::Coop
@@ -488,3 +523,17 @@ void ASnakeGameMode::RestartGame()
     
     UGameplayStatics::OpenLevel(W, FName(*MapName));
 }
+
+FText ASnakeGameMode::GetCurrentGameTypeText() const
+{
+    // find the enum by name
+    const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameType"));
+    if (!EnumPtr)
+    {
+        return FText::FromString(TEXT("Unknown"));
+    }
+
+    // return its DisplayName (what you set in UMETA(DisplayName="…"))
+    return EnumPtr->GetDisplayNameTextByValue(static_cast<int64>(CurrentGameType));
+}
+

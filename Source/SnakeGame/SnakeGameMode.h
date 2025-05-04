@@ -4,6 +4,7 @@
 #include "SnakePawn.h"
 #include "Sound/SoundBase.h"
 #include "GameFramework/GameModeBase.h"
+#include "Internationalization/Text.h"
 #include "SnakeGameMode.generated.h"
 
 UENUM(BlueprintType)
@@ -22,7 +23,14 @@ enum class EGameType : uint8
     PvP             UMETA(DisplayName="Player vs Player"),
     Coop            UMETA(DisplayName="Cooperative"),
     PvAI            UMETA(DisplayName="Player vs AI"),
-    CoopAI          UMETA(DisplayName="Cooperative + AI")
+    CoopAI          UMETA(DisplayName="Cooperative + AI"),
+
+    // ─── V2 variants for 3D Depth Level ────────────────────────────
+    SinglePlayerV2  UMETA(DisplayName="Single Player V2"),
+    PvPV2           UMETA(DisplayName="Player vs Player V2"),
+    CoopV2          UMETA(DisplayName="Cooperative V2"),
+    PvAIV2          UMETA(DisplayName="Player vs AI V2"),
+    CoopAIV2        UMETA(DisplayName="Cooperative + AI V2")
 };
 
 class UMyUserWidget;
@@ -34,6 +42,34 @@ class SNAKEGAME_API ASnakeGameMode : public AGameModeBase
 
 public:
     ASnakeGameMode();
+
+    
+    // ←— mark this visible/readable in BP
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GameType")
+    EGameType CurrentGameType;
+
+    // ←— simple getter if you prefer    
+    UFUNCTION(BlueprintPure, Category="GameType")
+    EGameType GetCurrentGameType() const
+    {
+        return CurrentGameType;
+    }
+
+    // ←— helper to get an FText you can bind directly
+    UFUNCTION(BlueprintPure, Category="GameType")
+    FText GetCurrentGameTypeText() const;
+
+    // ─── NEW: toggle 3D‐DepthLevel remapping ─────────────────────────
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GameType")
+    bool bEnable3DDepthLevel = false;
+
+    /** Maps a base game type → its V2 variant (no-op if already V2 or unknown) */
+    UFUNCTION(BlueprintCallable, Category="GameType")
+    static EGameType ToV2Variant(EGameType BaseType);
+
+    /** Maps any V2 variant → its base type (no-op for non-V2) */
+    UFUNCTION(BlueprintCallable, Category="GameType")
+    static EGameType ToBaseVariant(EGameType Type);
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
     TSubclassOf<UMyUserWidget> InGameWidgetClass;
