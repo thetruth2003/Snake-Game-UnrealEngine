@@ -29,7 +29,7 @@
 - **Movement**: Arrow keys or WASD to change direction  
 - **Jump**: Spacebar  
 - **Pause**: `P` key toggles pause menu  
-- **Restart**: Press `R` on Game Over screen or click Restart button  
+- **Restart**: On Game Over screen or click Restart button  
 
 * * *
 
