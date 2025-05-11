@@ -89,11 +89,4 @@ Screenshots           |  Screenshots
 - Deepened understanding of AI pathfinding in grid-based environments  
 - Learned best practices for actor instancing and data-driven level design  
 
-## About
 
-Personal project by **Kenan EGE**  
-
-- Computer Engineer, Futuregames Academy  
-- 04 May 2025  
-
-Enjoy playing and experimenting!
