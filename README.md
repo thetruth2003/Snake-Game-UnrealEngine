@@ -2,7 +2,7 @@
 3D Snake Game developed in Unreal Engine 5 using C++.
 
 - Futuregames Academy  
-- (04 May 2025)
+- (25 May 2025)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/63e3095c-8017-41f2-ba3f-aa245eaa8893" width="250" title="hover text"><br>
