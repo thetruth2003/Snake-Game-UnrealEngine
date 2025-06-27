@@ -1,92 +1,121 @@
-# 🐍 Snake Game with Unreal Engine 5
-3D Snake Game developed in Unreal Engine 5 using C++.
+🐍 NeoSnake - Unreal Engine 5
 
-- Futuregames Academy  
-- (25 May 2025)
+A modern 3D Snake Game developed in Unreal Engine 5 using C++. This version is adapted and maintained as part of a personal portfolio project.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/63e3095c-8017-41f2-ba3f-aa245eaa8893" width="250" title="hover text"><br>
-  <a href=""></a>
-</p>
+Developed originally at Futuregames Academy (May 2025)
 
+Adapted and maintained by [Your Name]
 
-* * *
+🎮 Key Features
 
-## Key Features
+Game Modes: Single Player, PvP (Split-Screen), Coop, PvAI, CoopAI
 
-- **Multiple Game Modes**: Single Player, PvP (local split-screen), Coop, AI-supported modes (PvAI, CoopAI)  
-- **Dynamic Tail Growth**: Tail segments grow and follow the head smoothly  
-- **AI Pathfinding**: AI snake uses grid-based BFS to chase the closest apple  
-- **Level Management**: Load levels from text files with walls (`#`), doors (`D`), floors (`.`), and empty tiles (`O`)  
-- **Food Spawning**: Apples spawn on valid floor tiles surrounded by walkable neighbors  
-- **Custom UI**: UMG widgets for Main Menu, In-Game HUD, Pause Menu, and Game Over screens  
-- **Sound & Effects**: Ambient music, game over sound, eat particles, notice sound with question-mark widget  
+Dynamic Tail Growth: Snake segments follow smoothly and expand naturally
 
-* * *
+AI Pathfinding: Grid-based BFS navigation chasing nearest apple
 
-## Controls
+Text-Based Levels: Levels loaded from .txt maps using simple characters
 
-- **Movement**: Arrow keys or WASD to change direction  
-- **Jump**: Spacebar  
-- **Pause**: `P` key toggles pause menu  
-- **Restart**: On Game Over screen or click Restart button  
+Valid Food Spawning: Apples spawn on available floor tiles
 
-* * *
+Full UI System: UMG widgets for all menus and HUD screens
 
-## Screenshots
+Visual & Audio Feedback: Game over sounds, particle effects, ambient music
 
-Screenshots           |  Screenshots 
-:-------------------------:|:-------------------------:
-![](ForReadme/1.png)  |  ![](ForReadme/3.png)
-![](ForReadme/2.png)  |  ![](ForReadme/4.png)
+⌨️ Controls
 
-* * *
+Action
 
-## Implementation Details
+Key
 
-### SnakePawn
+Move
 
-- Handles player and AI snake movement, grid snapping, tail growth, collision detection, and jump logic  
-- Uses `ESnakeDirection` enum and grid-based movement in `UpdateMovement` and `MoveSnake`  
+Arrow keys / WASD
 
-### ASnakeAIController
+Jump
 
-- Implements `Tick` to recalc path only on new tile entry  
-- Uses BFS (`FindPath`) on walkable tiles, excluding the snake’s tail  
-- Snaps goals and path points to grid for precise navigation  
+Spacebar
 
-### SnakeWorld
+Pause
 
-- Loads level layouts from `Content/Levels/LevelN.txt` via `LoadLevelFromText`  
-- Manages instanced static meshes for walls and floors  
-- Spawns food actors (`SnakeFood`) on valid tiles in `SpawnFood`  
+P
 
-### SnakeGameMode
+Restart
 
-- Manages game state transitions (`MainMenu`, `Game`, `Pause`, `Outro`)  
-- Handles player/AI spawning, score & apple counters, and UI widget creation  
-- Responds to `NotifyAppleEaten` to update UI and progress levels  
+R or on-screen
 
-### MyUserWidget (UMG)
+🖼️ Screenshots
 
-- Binds `ScoreText`, `LevelText`, `ScoreP1Text`, `ScoreP2Text`  
-- Provides `SetScore`, `SetLevel`, and `SetPlayerScores` blueprint-callable functions  
+Gameplay
 
-* * *
-
-## Challenges Faced and Solutions Implemented
-
-- **Enhanced Input Mapping**: Configured separate `P1Mapping` and `P2Mapping` contexts for multiple local players  
-- **Grid Precision**: Ensured accurate snapping and BFS convergence by rounding positions in `SnapToGrid`  
-- **Performance**: Optimized tail updates and pathfinding to avoid hitches by limiting recalculations  
-
-* * *
-
-## Reflection on the Learning Experience
-
-- Gained proficiency in Unreal Engine C++ workflows and module dependencies (`AIModule`, `EnhancedInput`)  
-- Explored advanced UMG widget creation and dynamic UI management  
-- Deepened understanding of AI pathfinding in grid-based environments  
-- Learned best practices for actor instancing and data-driven level design  
+UI & Feedback
 
 
+
+
+
+
+
+
+
+🔧 Implementation Overview
+
+SnakePawn
+
+Player and AI control
+
+Tail growth and snake head rotation
+
+Snap-to-grid logic
+
+ASnakeAIController
+
+Uses BFS to calculate path toward apples
+
+Path recalculates only when snake enters a new tile
+
+SnakeWorld
+
+Loads levels from text file
+
+Spawns floor, wall, and food actors
+
+Validates spawn logic to avoid unwalkable areas
+
+SnakeGameMode
+
+Manages transitions: MainMenu, Game, Pause, Outro
+
+Tracks score, handles apple collection logic
+
+Instantiates player and AI snakes
+
+MyUserWidget (UMG)
+
+Handles UI for score, level, player status
+
+Blueprint-callable functions like SetScore(), SetLevel() etc.
+
+🛠️ Custom Improvements
+
+Enhanced tail-following system for visual clarity
+
+Modularized UI layout with reusable widgets
+
+BFS optimized for performance and grid precision
+
+Dynamic level loading using character-coded text files
+
+🎓 Learnings
+
+Integrated AIModule and EnhancedInput effectively
+
+Created polished game loop with responsive UI
+
+Explored grid-based logic in 3D Unreal environments
+
+Balanced AI logic and game feel for smooth player experience
+
+📚 Acknowledgments
+
+Originally built at Futuregames AcademyCustomized and documented by [Your Name] for showcase purposes
